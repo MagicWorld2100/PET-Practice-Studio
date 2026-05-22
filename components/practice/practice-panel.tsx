@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { AnimatePresence } from "framer-motion";
 import { ChevronLeft, ChevronRight, ClipboardList } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -47,6 +46,7 @@ export function PracticePanel({
   const currentResult = currentQuestion
     ? results.find((item) => item.questionId === currentQuestion.id)
     : undefined;
+  const currentAnswer = currentQuestion ? (answers[currentQuestion.id] ?? "") : "";
 
   return (
     <div className="grid gap-6 lg:grid-cols-[300px_1fr]">
@@ -97,39 +97,80 @@ export function PracticePanel({
             </Button>
           </div>
         </div>
-        <AnimatePresence mode="popLayout">
-          {currentQuestion ? (
+        {currentQuestion ? (
+          <div
+            data-testid="active-question-card"
+            className="rounded-xl border bg-white p-6 shadow-sm"
+          >
+            <div className="mb-4 rounded-md border bg-muted/40 p-3 text-sm text-muted-foreground">
+              Active question loaded:{" "}
+              <span className="font-medium text-foreground">{currentQuestion.id}</span>
+            </div>
             <QuestionCard
-              key={currentQuestion.id}
               question={currentQuestion}
-              answer={answers[currentQuestion.id] ?? ""}
+              answer={currentAnswer}
               listeningReasons={listeningReasons}
               result={currentResult}
               onAnswer={onAnswer}
               onToggleListeningReason={onToggleListeningReason}
             />
-          ) : (
-            <Card>
-              <CardHeader>
-                <CardTitle>No matching practice question</CardTitle>
-                <CardDescription>
-                  当前筛选没有题目。请切换 Paper / Part / Topic / Difficulty，或重置筛选。
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Button
-                  variant="outline"
-                  onClick={() =>
-                    onFiltersChange({ ...filters, part: "All", topic: "All", difficulty: "All" })
-                  }
-                >
-                  Reset part filters
-                </Button>
-              </CardContent>
-            </Card>
-          )}
-        </AnimatePresence>
+            <DebugStrip
+              questionId={currentQuestion.id}
+              type={currentQuestion.type}
+              answer={currentAnswer}
+              resultState={
+                currentResult?.isAnswered
+                  ? currentResult.isCorrect === null
+                    ? `scored ${currentResult.score}/${currentResult.maxScore}`
+                    : currentResult.isCorrect
+                      ? "correct"
+                      : "review"
+                  : "not answered"
+              }
+            />
+          </div>
+        ) : (
+          <Card>
+            <CardHeader>
+              <CardTitle>No matching practice question</CardTitle>
+              <CardDescription>
+                当前筛选没有题目。请切换 Paper / Part / Topic / Difficulty，或重置筛选。
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Button
+                variant="outline"
+                onClick={() =>
+                  onFiltersChange({ ...filters, part: "All", topic: "All", difficulty: "All" })
+                }
+              >
+                Reset part filters
+              </Button>
+            </CardContent>
+          </Card>
+        )}
       </div>
+    </div>
+  );
+}
+
+function DebugStrip({
+  questionId,
+  type,
+  answer,
+  resultState,
+}: {
+  questionId: string;
+  type: string;
+  answer: string;
+  resultState: string;
+}) {
+  if (process.env.NODE_ENV === "production") return null;
+
+  return (
+    <div className="mt-4 rounded-md border bg-muted/30 p-3 text-xs text-muted-foreground">
+      <span className="font-medium text-foreground">Debug:</span> id={questionId} · type={type} ·
+      answer={answer || "(empty)"} · result={resultState}
     </div>
   );
 }

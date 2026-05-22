@@ -1,7 +1,5 @@
 "use client";
 
-import { motion } from "framer-motion";
-
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -27,21 +25,29 @@ export function QuestionCard({
   onAnswer,
   onToggleListeningReason,
 }: {
-  question: PracticeQuestion;
+  question: Partial<PracticeQuestion>;
   answer: string;
   result?: QuestionResult;
   listeningReasons: ListeningReasonMap;
   onAnswer: (questionId: string, value: string) => void;
   onToggleListeningReason: (questionId: string, reason: ListeningErrorReason) => void;
 }) {
+  if (!isRenderableQuestion(question)) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Question data is incomplete</CardTitle>
+          <CardDescription>
+            id={question?.id ?? "(missing)"} · type={question?.type ?? "(missing)"} · paper=
+            {question?.paper ?? "(missing)"} · part={question?.part ?? "(missing)"}
+          </CardDescription>
+        </CardHeader>
+      </Card>
+    );
+  }
+
   return (
-    <motion.article
-      layout
-      initial={{ opacity: 0, y: 12 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -12 }}
-      transition={{ duration: 0.18 }}
-    >
+    <article>
       <Card>
         <CardHeader>
           <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-start">
@@ -49,6 +55,7 @@ export function QuestionCard({
               <div className="flex flex-wrap items-center gap-2">
                 <Badge variant="secondary">{question.paper}</Badge>
                 <Badge variant="outline">{question.part}</Badge>
+                <Badge variant="outline">{question.topic}</Badge>
                 <Badge variant="outline">{question.difficulty}</Badge>
                 <Badge variant="outline">{question.type}</Badge>
               </div>
@@ -127,6 +134,19 @@ export function QuestionCard({
           {result ? <ExplanationPanel question={question} result={result} /> : null}
         </CardContent>
       </Card>
-    </motion.article>
+    </article>
+  );
+}
+
+function isRenderableQuestion(question: Partial<PracticeQuestion> | undefined): question is PracticeQuestion {
+  return Boolean(
+    question?.id &&
+      question.paper &&
+      question.part &&
+      question.topic &&
+      question.difficulty &&
+      question.type &&
+      question.title &&
+      question.prompt,
   );
 }
