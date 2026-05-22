@@ -1,27 +1,21 @@
 # PET Practice Studio
 
-PET Practice Studio is a browser-based practice app for Cambridge B1 Preliminary for Schools (PET). It is designed for children, parents, and tutors who want short, focused Reading, Listening, Writing, and Speaking practice with instant checking and simple feedback.
+PET Practice Studio is a browser-based Cambridge B1 Preliminary for Schools practice app for family use. Sprint 1 focuses on making the full local learning loop usable by a child in the browser, then giving parents a concise view of progress and next steps.
 
-This repository is initialized as a clean Next.js App Router project with TypeScript, Tailwind CSS, shadcn-style UI primitives, lucide-react icons, and framer-motion.
+This is not a commercial public launch and not an official Cambridge mock-test product. All sample practice content in this repository is original demo content, not copied from copyrighted past papers.
 
-## Current MVP Scope
+## Tech Stack
 
-- PET practice dashboard with module summary cards.
-- Local sample question bank in `data/sample-bank.ts`.
-- Support for `single_choice`, `true_false`, `gap_fill`, `writing`, and `speaking` items.
-- Per-paper filtering for Reading, Listening, Writing, and Speaking.
-- Instant checking for objective questions.
-- Simple heuristic scoring for Writing and Speaking.
-- Listening error reason tags: `没听到`, `反应慢`, `词不会`, `选项混淆`.
-- Explanation panel after answers are entered.
-- Lightweight diagnosis summary.
-- Parent feedback summary.
-- JSON import textarea for local question-bank trials.
-- localStorage persistence for answers, imported questions, and listening reason tags.
+- Next.js App Router
+- React
+- TypeScript
+- Tailwind CSS
+- shadcn/ui-style local components
+- lucide-react
+- framer-motion
+- localStorage persistence
 
-The MVP does not implement backend services yet. Audio playback, database persistence, authentication, mock-test generation, and AI explanations are intentionally left as future integration points.
-
-## Getting Started
+## Run Locally
 
 Install dependencies:
 
@@ -29,7 +23,7 @@ Install dependencies:
 npm install
 ```
 
-Run the local dev server:
+Start the dev server:
 
 ```bash
 npm run dev
@@ -37,73 +31,111 @@ npm run dev
 
 Open `http://localhost:3000`.
 
-Build for production:
-
-```bash
-npm run build
-```
-
-Run lint:
+Run checks:
 
 ```bash
 npm run lint
+npm run build
 ```
+
+## Sprint 1 MVP Scope
+
+A child can:
+
+- Choose PET paper, part, topic, and difficulty
+- Complete Reading, Listening, Writing, and Speaking practice
+- Get instant checking and explanations for objective questions
+- Use browser TTS playback for Listening v0
+- Tag Listening mistakes as `没听到`, `反应慢`, `词不会`, or `选项混淆`
+- Get rule-based Writing feedback with word count, task-point hits, missing points, score, and advice
+- Get lightweight Speaking feedback based on output length
+- Start a small Coverage Mock session across PET skills
+- Export/import local learning data as JSON
+
+A parent can:
+
+- See today’s completed work
+- See the most obvious progress
+- See three key problems
+- See tomorrow’s suggested tasks
+- See whether parent intervention is needed
+
+## Local-First Storage
+
+Sprint 1 intentionally uses localStorage only. There is no login, database, payment, permissions system, or commercial deployment layer.
+
+Stored local data includes:
+
+- answers
+- Listening mistake reasons
+- imported local questions
+- latest Coverage Mock sessions
+
+The Import / Export tab can export a local learning JSON object:
+
+```ts
+{
+  bank,
+  answers,
+  results,
+  listeningReasons,
+  mockSessions,
+  exportedAt,
+  version
+}
+```
+
+## Coverage Mock
+
+Coverage Mock is a short learning-flow check, not an official timed mock and not equivalent to a real Cambridge exam paper. It currently selects:
+
+- Reading: 6 questions, one per Reading part
+- Listening: 4 questions, one per Listening part
+- Writing: 1 task
+- Speaking: 2 tasks
 
 ## Project Structure
 
 ```text
 app/
-  page.tsx
-  layout.tsx
-  globals.css
 components/
-  pet-practice-studio.tsx
+  diagnosis/
+  import/
+  layout/
+  mock/
+  parent/
+  practice/
   ui/
 data/
-  sample-bank.ts
 docs/
-  ROADMAP.md
 lib/
-  diagnostics.ts
-  scoring.ts
-  storage.ts
-  utils.ts
 types/
-  question.ts
 ```
 
-## Question Model
+Key files:
 
-The local question type supports:
+- `components/pet-practice-studio.tsx` - state orchestration and tab layout
+- `data/sample-bank.ts` - original local sample bank
+- `lib/scoring.ts` - objective, writing, and speaking scoring
+- `lib/diagnostics.ts` - child diagnosis and parent feedback
+- `lib/mock.ts` - Coverage Mock session helpers
+- `lib/storage.ts` - localStorage helpers
+- `types/question.ts` - question, result, progress, and export types
 
-- `id`
-- `paper`
-- `part`
-- `skill`
-- `type`
-- `topic`
-- `title`
-- `prompt`
-- `passage`
-- `question`
-- `options`
-- `answer`
-- `explanation`
-- `diagnosisTags`
-- `checklist`
-- `support`
-- `minWords`
-- `idealWords`
-- `audioLabel`
+## Documentation
+
+- [Roadmap](docs/ROADMAP.md)
+- [Question schema](docs/QUESTION_SCHEMA.md)
+- [Sprint 1 issue backlog](docs/SPRINT-1-ISSUES.md)
 
 ## Future Roadmap
 
-See [docs/ROADMAP.md](docs/ROADMAP.md).
+Sprint 2 candidates:
 
-Suggested follow-up issues:
-
-- Add real Listening audio playback and transcript fixtures.
-- Add a review mode for wrong answers and weak diagnosis tags.
-- Add a typed question-bank validator for imported JSON.
-- Add database persistence after the local MVP is stable.
-- Add an AI explanation API behind a clear service boundary.
+- AI-generated mock paper blueprint
+- AI explanation API placeholder
+- Real audio file support
+- Review mode / wrong answer notebook
+- Spaced repetition for vocabulary and mistakes
+- Database and user profiles
+- Weekly parent report
