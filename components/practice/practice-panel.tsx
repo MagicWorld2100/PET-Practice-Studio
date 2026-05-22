@@ -49,23 +49,27 @@ export function PracticePanel({
   const currentAnswer = currentQuestion ? (answers[currentQuestion.id] ?? "") : "";
 
   return (
-    <div className="grid gap-6 lg:grid-cols-[300px_1fr]">
+    <div className="grid gap-4 lg:grid-cols-[260px_1fr]">
       <NavigatorPanel
         questions={allQuestions}
         filters={filters}
         onFiltersChange={onFiltersChange}
       />
       <div className="flex flex-col gap-4">
-        <div className="flex flex-col justify-between gap-3 rounded-lg border bg-card p-4 sm:flex-row sm:items-center">
+        <div className="flex flex-col justify-between gap-3 rounded-lg border bg-card p-3 sm:flex-row sm:items-center">
           <div>
             <p className="font-medium">
               {visibleQuestions.length === 0
                 ? "No question in current filter"
                 : `Question ${boundedIndex + 1} of ${visibleQuestions.length}`}
             </p>
-            <p className="text-sm text-muted-foreground">
-              {visibleQuestions.length} questions in view
-            </p>
+            {currentQuestion ? (
+              <p className="text-sm text-muted-foreground">
+                {currentQuestion.paper} · {currentQuestion.part} · {currentQuestion.topic}
+              </p>
+            ) : (
+              <p className="text-sm text-muted-foreground">{visibleQuestions.length} questions in view</p>
+            )}
           </div>
           <div className="flex flex-wrap gap-2">
             <Button
@@ -100,9 +104,9 @@ export function PracticePanel({
         {currentQuestion ? (
           <div
             data-testid="active-question-card"
-            className="rounded-xl border bg-white p-6 shadow-sm"
+            className="rounded-xl border bg-white p-4 shadow-sm sm:p-5"
           >
-            <div className="mb-4 rounded-md border bg-muted/40 p-3 text-sm text-muted-foreground">
+            <div className="mb-3 rounded-md border bg-muted/40 p-2 text-xs text-muted-foreground">
               Active question loaded:{" "}
               <span className="font-medium text-foreground">{currentQuestion.id}</span>
             </div>
@@ -193,11 +197,11 @@ function NavigatorPanel({
 
   return (
     <Card className="h-fit">
-      <CardHeader>
+      <CardHeader className="p-4 pb-2">
         <CardTitle>练习导航</CardTitle>
         <CardDescription>按 Paper / Part / Topic / Difficulty 精准进入短练。</CardDescription>
       </CardHeader>
-      <CardContent className="flex flex-col gap-4">
+      <CardContent className="flex flex-col gap-3 p-4 pt-0">
         <div className="flex flex-col gap-2">
           <p className="text-sm font-medium">Paper</p>
           {(["All", ...paperOrder] as const).map((paper) => (

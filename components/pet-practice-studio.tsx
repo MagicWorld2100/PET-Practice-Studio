@@ -5,7 +5,6 @@ import { useEffect, useMemo, useState } from "react";
 import { DiagnosisPanel } from "@/components/diagnosis/diagnosis-panel";
 import { ImportBankPanel } from "@/components/import/import-bank-panel";
 import { HeroPanel } from "@/components/layout/hero-panel";
-import { ModuleSummaryCards } from "@/components/layout/module-summary-cards";
 import { CoverageMockPanel } from "@/components/mock/coverage-mock-panel";
 import { ParentFeedbackPanel } from "@/components/parent/parent-feedback-panel";
 import { PracticePanel } from "@/components/practice/practice-panel";
@@ -209,13 +208,12 @@ export function PetPracticeStudio() {
   return (
     <main className="min-h-screen bg-background text-foreground">
       <section className="border-b bg-muted/30">
-        <div className="mx-auto flex w-full max-w-7xl flex-col gap-8 px-4 py-6 sm:px-6 lg:px-8">
+        <div className="mx-auto flex w-full max-w-7xl flex-col gap-4 px-4 py-4 sm:px-6 lg:px-8">
           <HeroPanel scoring={allScoring} />
-          <ModuleSummaryCards questions={allQuestions} answers={progress.answers} />
         </div>
       </section>
 
-      <section className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
+      <section className="mx-auto w-full max-w-7xl px-4 py-4 sm:px-6 lg:px-8">
         <Tabs defaultValue="practice">
           <TabsList className="w-full justify-start">
             <TabsTrigger value="practice">Practice</TabsTrigger>

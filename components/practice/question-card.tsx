@@ -49,7 +49,7 @@ export function QuestionCard({
   return (
     <article>
       <Card>
-        <CardHeader>
+        <CardHeader className="p-4 pb-2">
           <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-start">
             <div className="flex flex-col gap-2">
               <div className="flex flex-wrap items-center gap-2">
@@ -59,7 +59,7 @@ export function QuestionCard({
                 <Badge variant="outline">{question.difficulty}</Badge>
                 <Badge variant="outline">{question.type}</Badge>
               </div>
-              <CardTitle>{question.title}</CardTitle>
+              <CardTitle className="text-xl leading-7">{question.title}</CardTitle>
               <CardDescription>{question.topic}</CardDescription>
             </div>
             {result?.isAnswered ? (
@@ -73,9 +73,9 @@ export function QuestionCard({
             ) : null}
           </div>
         </CardHeader>
-        <CardContent className="flex flex-col gap-4">
-          <div className="rounded-lg bg-muted/60 p-4 text-sm leading-6">
-            <p className="font-medium">{question.prompt}</p>
+        <CardContent className="flex flex-col gap-4 p-4 pt-2">
+          <div className="rounded-lg bg-muted/60 p-4 text-base leading-7">
+            <p className="font-semibold text-foreground">{question.prompt}</p>
             {question.audioLabel ? (
               <p className="mt-2 text-muted-foreground">Audio: {question.audioLabel}</p>
             ) : null}
@@ -85,7 +85,7 @@ export function QuestionCard({
             {question.paper === "Listening" && question.passage ? (
               <p className="mt-3 text-muted-foreground">{question.passage}</p>
             ) : null}
-            {question.question ? <p className="mt-3 font-medium">{question.question}</p> : null}
+            {question.question ? <p className="mt-3 font-semibold text-foreground">{question.question}</p> : null}
           </div>
 
           {question.paper === "Listening" ? (

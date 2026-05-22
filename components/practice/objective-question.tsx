@@ -35,8 +35,8 @@ export function ObjectiveQuestion({
             {answer ? `${answer}${selectedLabel ? ` · ${selectedLabel}` : ""}` : "none"}
           </span>
         </div>
-        <Button disabled={!answer} onClick={() => onAnswer(question.id, answer)}>
-          Check answer
+        <Button size="lg" disabled={!answer} onClick={() => onAnswer(question.id, answer)}>
+          Submit / Check answer
         </Button>
       </div>
     );
@@ -53,8 +53,8 @@ export function ObjectiveQuestion({
       <div className="rounded-md border bg-muted/40 p-3 text-sm text-muted-foreground">
         Selected: <span className="font-medium text-foreground">{answer || "none"}</span>
       </div>
-      <Button disabled={!answer.trim()} onClick={() => onAnswer(question.id, answer)}>
-        Check answer
+      <Button size="lg" disabled={!answer.trim()} onClick={() => onAnswer(question.id, answer)}>
+        Submit / Check answer
       </Button>
     </div>
   );
