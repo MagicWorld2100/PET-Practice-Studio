@@ -1,5 +1,7 @@
 "use client";
 
+import { AlertCircle } from "lucide-react";
+
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -21,15 +23,19 @@ export function QuestionCard({
   question,
   answer,
   result,
+  isSubmitted,
   listeningReasons,
   onAnswer,
+  onSubmit,
   onToggleListeningReason,
 }: {
   question: Partial<PracticeQuestion>;
   answer: string;
   result?: QuestionResult;
+  isSubmitted: boolean;
   listeningReasons: ListeningReasonMap;
   onAnswer: (questionId: string, value: string) => void;
+  onSubmit: () => void;
   onToggleListeningReason: (questionId: string, reason: ListeningErrorReason) => void;
 }) {
   if (!isRenderableQuestion(question)) {
@@ -47,94 +53,107 @@ export function QuestionCard({
   }
 
   return (
-    <article>
-      <Card>
-        <CardHeader className="p-4 pb-2">
-          <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-start">
-            <div className="flex flex-col gap-2">
-              <div className="flex flex-wrap items-center gap-2">
-                <Badge variant="secondary">{question.paper}</Badge>
-                <Badge variant="outline">{question.part}</Badge>
-                <Badge variant="outline">{question.topic}</Badge>
-                <Badge variant="outline">{question.difficulty}</Badge>
-                <Badge variant="outline">{question.type}</Badge>
-              </div>
-              <CardTitle className="text-xl leading-7">{question.title}</CardTitle>
-              <CardDescription>{question.topic}</CardDescription>
+    <Card className="bg-white">
+      <CardHeader className="gap-3">
+        <div className="flex flex-wrap gap-2">
+          <Badge variant="secondary">{question.paper}</Badge>
+          <Badge variant="outline">{question.part}</Badge>
+          <Badge variant="outline">{question.topic}</Badge>
+          <Badge variant="outline">{question.difficulty}</Badge>
+        </div>
+        <div>
+          <CardTitle className="text-2xl leading-8">{question.title}</CardTitle>
+          <CardDescription className="mt-2 text-base">
+            Read the task, choose or write your answer, then check it.
+          </CardDescription>
+        </div>
+      </CardHeader>
+      <CardContent className="flex flex-col gap-5">
+        <section className="rounded-lg border bg-muted/40 p-4">
+          <p className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+            Task instruction
+          </p>
+          <p className="mt-2 text-base font-semibold leading-7 text-foreground">{question.prompt}</p>
+        </section>
+
+        {question.paper === "Listening" ? (
+          <ListeningControls question={question} canReveal={isSubmitted} />
+        ) : null}
+
+        {question.paper !== "Listening" && question.passage ? (
+          <section className="rounded-lg border bg-card p-4">
+            <p className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+              Passage
+            </p>
+            <p className="mt-2 text-base leading-7 text-muted-foreground">{question.passage}</p>
+          </section>
+        ) : null}
+
+        {question.question ? (
+          <section className="rounded-lg border bg-card p-4">
+            <p className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+              Question
+            </p>
+            <p className="mt-2 text-lg font-semibold leading-7 text-foreground">{question.question}</p>
+          </section>
+        ) : null}
+
+        {question.type === "writing" ? (
+          <WritingQuestion
+            question={question}
+            answer={answer}
+            result={result}
+            isSubmitted={isSubmitted}
+            onAnswer={onAnswer}
+            onSubmit={onSubmit}
+          />
+        ) : question.type === "speaking" ? (
+          <SpeakingQuestion
+            question={question}
+            answer={answer}
+            result={result}
+            isSubmitted={isSubmitted}
+            onAnswer={onAnswer}
+            onSubmit={onSubmit}
+          />
+        ) : (
+          <ObjectiveQuestion
+            question={question}
+            answer={answer}
+            result={result}
+            isSubmitted={isSubmitted}
+            onAnswer={onAnswer}
+            onSubmit={onSubmit}
+          />
+        )}
+
+        {question.paper === "Listening" && isSubmitted && result?.isCorrect === false ? (
+          <section className="flex flex-col gap-3 rounded-lg border bg-card p-4">
+            <div className="flex items-center gap-2 font-medium">
+              <AlertCircle data-icon="inline-start" />
+              What made this listening question hard?
             </div>
-            {result?.isAnswered ? (
-              <Badge variant={result.isCorrect === false ? "outline" : "default"}>
-                {result.isCorrect === null
-                  ? `${result.score}/${result.maxScore}`
-                  : result.isCorrect
-                    ? "Correct"
-                    : "Review"}
-              </Badge>
-            ) : null}
-          </div>
-        </CardHeader>
-        <CardContent className="flex flex-col gap-4 p-4 pt-2">
-          <div className="rounded-lg bg-muted/60 p-4 text-base leading-7">
-            <p className="font-semibold text-foreground">{question.prompt}</p>
-            {question.audioLabel ? (
-              <p className="mt-2 text-muted-foreground">Audio: {question.audioLabel}</p>
-            ) : null}
-            {question.paper !== "Listening" && question.passage ? (
-              <p className="mt-3 text-muted-foreground">{question.passage}</p>
-            ) : null}
-            {question.paper === "Listening" && question.passage ? (
-              <p className="mt-3 text-muted-foreground">{question.passage}</p>
-            ) : null}
-            {question.question ? <p className="mt-3 font-semibold text-foreground">{question.question}</p> : null}
-          </div>
-
-          {question.paper === "Listening" ? (
-            <ListeningControls question={question} canReveal={Boolean(result?.isAnswered)} />
-          ) : null}
-
-          {question.type === "writing" ? (
-            <WritingQuestion question={question} answer={answer} result={result} onAnswer={onAnswer} />
-          ) : question.type === "speaking" ? (
-            <SpeakingQuestion question={question} answer={answer} result={result} onAnswer={onAnswer} />
-          ) : (
-            <ObjectiveQuestion question={question} answer={answer} onAnswer={onAnswer} />
-          )}
-
-          {question.assessmentFocus?.length ? (
             <div className="flex flex-wrap gap-2">
-              {question.assessmentFocus.map((focus) => (
-                <Badge key={focus} variant="secondary">
-                  {focus}
-                </Badge>
-              ))}
+              {listeningReasonOptions.map((reason) => {
+                const active = (listeningReasons[question.id] ?? []).includes(reason);
+                return (
+                  <Button
+                    key={reason}
+                    size="sm"
+                    variant={active ? "default" : "outline"}
+                    onClick={() => onToggleListeningReason(question.id, reason)}
+                  >
+                    {reason}
+                  </Button>
+                );
+              })}
             </div>
-          ) : null}
+          </section>
+        ) : null}
 
-          {question.paper === "Listening" && result?.isAnswered && result.isCorrect === false ? (
-            <div className="flex flex-col gap-2">
-              <p className="text-sm font-medium">听力错误原因</p>
-              <div className="flex flex-wrap gap-2">
-                {listeningReasonOptions.map((reason) => {
-                  const active = (listeningReasons[question.id] ?? []).includes(reason);
-                  return (
-                    <Button
-                      key={reason}
-                      size="sm"
-                      variant={active ? "default" : "outline"}
-                      onClick={() => onToggleListeningReason(question.id, reason)}
-                    >
-                      {reason}
-                    </Button>
-                  );
-                })}
-              </div>
-            </div>
-          ) : null}
-
-          {result ? <ExplanationPanel question={question} result={result} /> : null}
-        </CardContent>
-      </Card>
-    </article>
+        {isSubmitted && result ? <ExplanationPanel question={question} result={result} /> : null}
+      </CardContent>
+    </Card>
   );
 }
 

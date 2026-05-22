@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { ArrowLeft, ArrowRight, CheckCircle2, PlayCircle } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -38,6 +39,8 @@ export function CoverageMockPanel({
   onAnswer: (questionId: string, value: string) => void;
   onToggleListeningReason: (questionId: string, reason: ListeningErrorReason) => void;
 }) {
+  const [submitted, setSubmitted] = useState<Record<string, boolean>>({});
+
   if (!session) {
     return (
       <Card>
@@ -62,6 +65,12 @@ export function CoverageMockPanel({
   }
 
   const currentQuestion = questions[session.currentIndex];
+  const currentAnswer = currentQuestion ? (answers[currentQuestion.id] ?? "") : "";
+  const currentSubmitted = currentQuestion ? Boolean(submitted[currentQuestion.id]) : false;
+  const currentResult =
+    currentQuestion && currentSubmitted
+      ? results.find((result) => result.questionId === currentQuestion.id)
+      : undefined;
   const progressValue =
     questions.length === 0 ? 0 : Math.round(((session.currentIndex + 1) / questions.length) * 100);
 
@@ -115,10 +124,17 @@ export function CoverageMockPanel({
       {currentQuestion ? (
         <QuestionCard
           question={currentQuestion}
-          answer={answers[currentQuestion.id] ?? ""}
-          result={results.find((result) => result.questionId === currentQuestion.id)}
+          answer={currentAnswer}
+          result={currentResult}
+          isSubmitted={currentSubmitted}
           listeningReasons={listeningReasons}
-          onAnswer={onAnswer}
+          onAnswer={(questionId, value) => {
+            setSubmitted((current) => ({ ...current, [questionId]: false }));
+            onAnswer(questionId, value);
+          }}
+          onSubmit={() =>
+            setSubmitted((current) => ({ ...current, [currentQuestion.id]: true }))
+          }
           onToggleListeningReason={onToggleListeningReason}
         />
       ) : null}

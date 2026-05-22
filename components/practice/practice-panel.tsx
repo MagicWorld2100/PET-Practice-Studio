@@ -1,8 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { ChevronLeft, ChevronRight, ClipboardList } from "lucide-react";
+import { ChevronLeft, ChevronRight, ClipboardList, RotateCcw } from "lucide-react";
 
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { QuestionCard } from "@/components/practice/question-card";
@@ -17,6 +18,8 @@ import type {
   PracticeQuestion,
   QuestionResult,
 } from "@/types/question";
+
+type SubmittedMap = Record<string, boolean>;
 
 export function PracticePanel({
   allQuestions,
@@ -40,142 +43,132 @@ export function PracticePanel({
   onToggleListeningReason: (questionId: string, reason: ListeningErrorReason) => void;
 }) {
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [submitted, setSubmitted] = useState<SubmittedMap>({});
   const lastIndex = Math.max(visibleQuestions.length - 1, 0);
   const boundedIndex = Math.min(currentIndex, lastIndex);
   const currentQuestion = visibleQuestions[boundedIndex];
-  const currentResult = currentQuestion
-    ? results.find((item) => item.questionId === currentQuestion.id)
-    : undefined;
   const currentAnswer = currentQuestion ? (answers[currentQuestion.id] ?? "") : "";
+  const currentResult =
+    currentQuestion && submitted[currentQuestion.id]
+      ? results.find((item) => item.questionId === currentQuestion.id)
+      : undefined;
+
+  function updateFilters(nextFilters: PracticeFilters) {
+    setCurrentIndex(0);
+    onFiltersChange(nextFilters);
+  }
+
+  function submitCurrent() {
+    if (!currentQuestion) return;
+    setSubmitted((current) => ({ ...current, [currentQuestion.id]: true }));
+  }
 
   return (
-    <div className="grid gap-4 lg:grid-cols-[260px_1fr]">
-      <NavigatorPanel
-        questions={allQuestions}
-        filters={filters}
-        onFiltersChange={onFiltersChange}
-      />
-      <div className="flex flex-col gap-4">
-        <div className="flex flex-col justify-between gap-3 rounded-lg border bg-card p-3 sm:flex-row sm:items-center">
-          <div>
-            <p className="font-medium">
-              {visibleQuestions.length === 0
-                ? "No question in current filter"
-                : `Question ${boundedIndex + 1} of ${visibleQuestions.length}`}
-            </p>
-            {currentQuestion ? (
-              <p className="text-sm text-muted-foreground">
-                {currentQuestion.paper} · {currentQuestion.part} · {currentQuestion.topic}
-              </p>
-            ) : (
-              <p className="text-sm text-muted-foreground">{visibleQuestions.length} questions in view</p>
-            )}
-          </div>
-          <div className="flex flex-wrap gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={visibleQuestions.length === 0 || boundedIndex === 0}
-              onClick={() => setCurrentIndex(Math.max(boundedIndex - 1, 0))}
-            >
-              <ChevronLeft data-icon="inline-start" />
-              Previous
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={visibleQuestions.length === 0 || boundedIndex >= visibleQuestions.length - 1}
-              onClick={() => setCurrentIndex(Math.min(boundedIndex + 1, lastIndex))}
-            >
-              Next
-              <ChevronRight data-icon="inline-end" />
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() =>
-                onFiltersChange({ ...filters, part: "All", topic: "All", difficulty: "All" })
-              }
-            >
-              Reset part filters
-            </Button>
-          </div>
-        </div>
+    <div className="grid gap-4 lg:grid-cols-[280px_1fr]">
+      <NavigatorPanel questions={allQuestions} filters={filters} onFiltersChange={updateFilters} />
+
+      <section className="flex flex-col gap-4">
         {currentQuestion ? (
-          <div
-            data-testid="active-question-card"
-            className="rounded-xl border bg-white p-4 shadow-sm sm:p-5"
-          >
-            <div className="mb-3 rounded-md border bg-muted/40 p-2 text-xs text-muted-foreground">
-              Active question loaded:{" "}
-              <span className="font-medium text-foreground">{currentQuestion.id}</span>
-            </div>
-            <QuestionCard
+          <>
+            <WorkbenchTopBar
               question={currentQuestion}
-              answer={currentAnswer}
-              listeningReasons={listeningReasons}
-              result={currentResult}
-              onAnswer={onAnswer}
-              onToggleListeningReason={onToggleListeningReason}
+              index={boundedIndex}
+              total={visibleQuestions.length}
+              onPrevious={() => setCurrentIndex(Math.max(boundedIndex - 1, 0))}
+              onNext={() => setCurrentIndex(Math.min(boundedIndex + 1, lastIndex))}
+              previousDisabled={boundedIndex === 0}
+              nextDisabled={boundedIndex >= visibleQuestions.length - 1}
             />
-            <DebugStrip
-              questionId={currentQuestion.id}
-              type={currentQuestion.type}
-              answer={currentAnswer}
-              resultState={
-                currentResult?.isAnswered
-                  ? currentResult.isCorrect === null
-                    ? `scored ${currentResult.score}/${currentResult.maxScore}`
-                    : currentResult.isCorrect
-                      ? "correct"
-                      : "review"
-                  : "not answered"
-              }
-            />
-          </div>
+            <div data-testid="active-question-card">
+              <QuestionCard
+                question={currentQuestion}
+                answer={currentAnswer}
+                result={currentResult}
+                isSubmitted={Boolean(submitted[currentQuestion.id])}
+                listeningReasons={listeningReasons}
+                onAnswer={(questionId, value) => {
+                  setSubmitted((current) => ({ ...current, [questionId]: false }));
+                  onAnswer(questionId, value);
+                }}
+                onSubmit={submitCurrent}
+                onToggleListeningReason={onToggleListeningReason}
+              />
+            </div>
+          </>
         ) : (
-          <Card>
-            <CardHeader>
-              <CardTitle>No matching practice question</CardTitle>
-              <CardDescription>
-                当前筛选没有题目。请切换 Paper / Part / Topic / Difficulty，或重置筛选。
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Button
-                variant="outline"
-                onClick={() =>
-                  onFiltersChange({ ...filters, part: "All", topic: "All", difficulty: "All" })
-                }
-              >
-                Reset part filters
-              </Button>
-            </CardContent>
-          </Card>
+          <EmptyPracticeState
+            onReset={() =>
+              updateFilters({ paper: "All", part: "All", topic: "All", difficulty: "All" })
+            }
+          />
         )}
-      </div>
+      </section>
     </div>
   );
 }
 
-function DebugStrip({
-  questionId,
-  type,
-  answer,
-  resultState,
+function WorkbenchTopBar({
+  question,
+  index,
+  total,
+  previousDisabled,
+  nextDisabled,
+  onPrevious,
+  onNext,
 }: {
-  questionId: string;
-  type: string;
-  answer: string;
-  resultState: string;
+  question: PracticeQuestion;
+  index: number;
+  total: number;
+  previousDisabled: boolean;
+  nextDisabled: boolean;
+  onPrevious: () => void;
+  onNext: () => void;
 }) {
-  if (process.env.NODE_ENV === "production") return null;
-
   return (
-    <div className="mt-4 rounded-md border bg-muted/30 p-3 text-xs text-muted-foreground">
-      <span className="font-medium text-foreground">Debug:</span> id={questionId} · type={type} ·
-      answer={answer || "(empty)"} · result={resultState}
-    </div>
+    <Card>
+      <CardContent className="flex flex-col justify-between gap-3 p-4 sm:flex-row sm:items-center">
+        <div className="flex flex-col gap-2">
+          <p className="text-lg font-semibold">
+            Question {index + 1} of {total}
+          </p>
+          <div className="flex flex-wrap gap-2">
+            <Badge variant="secondary">{question.paper}</Badge>
+            <Badge variant="outline">{question.part}</Badge>
+            <Badge variant="outline">{question.topic}</Badge>
+            <Badge variant="outline">{question.difficulty}</Badge>
+          </div>
+        </div>
+        <div className="flex gap-2">
+          <Button variant="outline" disabled={previousDisabled} onClick={onPrevious}>
+            <ChevronLeft data-icon="inline-start" />
+            Previous
+          </Button>
+          <Button variant="outline" disabled={nextDisabled} onClick={onNext}>
+            Next
+            <ChevronRight data-icon="inline-end" />
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function EmptyPracticeState({ onReset }: { onReset: () => void }) {
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>No practice question matches these filters</CardTitle>
+        <CardDescription>
+          Try a wider filter, or reset filters to return to the full practice bank.
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <Button onClick={onReset}>
+          <RotateCcw data-icon="inline-start" />
+          Reset filters
+        </Button>
+      </CardContent>
+    </Card>
   );
 }
 
@@ -192,16 +185,16 @@ function NavigatorPanel({
   const topics = getAvailableTopics(questions, filters.paper);
 
   function setPaper(paper: PetPaper | "All") {
-    onFiltersChange({ ...filters, paper, part: "All", topic: "All" });
+    onFiltersChange({ paper, part: "All", topic: "All", difficulty: "All" });
   }
 
   return (
     <Card className="h-fit">
-      <CardHeader className="p-4 pb-2">
-        <CardTitle>练习导航</CardTitle>
-        <CardDescription>按 Paper / Part / Topic / Difficulty 精准进入短练。</CardDescription>
+      <CardHeader>
+        <CardTitle>Practice Navigator</CardTitle>
+        <CardDescription>Choose what to practise now.</CardDescription>
       </CardHeader>
-      <CardContent className="flex flex-col gap-3 p-4 pt-0">
+      <CardContent className="flex flex-col gap-4">
         <div className="flex flex-col gap-2">
           <p className="text-sm font-medium">Paper</p>
           {(["All", ...paperOrder] as const).map((paper) => (
@@ -212,7 +205,7 @@ function NavigatorPanel({
               onClick={() => setPaper(paper)}
             >
               {paper === "All" ? <ClipboardList data-icon="inline-start" /> : null}
-              {paper === "All" ? "All papers 全部" : paper}
+              {paper === "All" ? "All papers" : paper}
             </Button>
           ))}
         </div>
@@ -237,6 +230,14 @@ function NavigatorPanel({
             onFiltersChange({ ...filters, difficulty: difficulty as Difficulty | "All" })
           }
         />
+
+        <Button
+          variant="outline"
+          onClick={() => onFiltersChange({ paper: "All", part: "All", topic: "All", difficulty: "All" })}
+        >
+          <RotateCcw data-icon="inline-start" />
+          Reset filters
+        </Button>
       </CardContent>
     </Card>
   );
