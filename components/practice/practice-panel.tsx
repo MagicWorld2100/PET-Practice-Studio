@@ -1,7 +1,8 @@
 "use client";
 
+import { useState } from "react";
 import { AnimatePresence } from "framer-motion";
-import { ClipboardList } from "lucide-react";
+import { ChevronLeft, ChevronRight, ClipboardList } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -39,6 +40,14 @@ export function PracticePanel({
   onAnswer: (questionId: string, value: string) => void;
   onToggleListeningReason: (questionId: string, reason: ListeningErrorReason) => void;
 }) {
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const lastIndex = Math.max(visibleQuestions.length - 1, 0);
+  const boundedIndex = Math.min(currentIndex, lastIndex);
+  const currentQuestion = visibleQuestions[boundedIndex];
+  const currentResult = currentQuestion
+    ? results.find((item) => item.questionId === currentQuestion.id)
+    : undefined;
+
   return (
     <div className="grid gap-6 lg:grid-cols-[300px_1fr]">
       <NavigatorPanel
@@ -47,24 +56,78 @@ export function PracticePanel({
         onFiltersChange={onFiltersChange}
       />
       <div className="flex flex-col gap-4">
-        <div className="flex items-center justify-between gap-3">
-          <p className="text-sm text-muted-foreground">{visibleQuestions.length} questions in view</p>
-          <Button variant="outline" size="sm" onClick={() => onFiltersChange({ ...filters, part: "All", topic: "All", difficulty: "All" })}>
-            Reset part filters
-          </Button>
+        <div className="flex flex-col justify-between gap-3 rounded-lg border bg-card p-4 sm:flex-row sm:items-center">
+          <div>
+            <p className="font-medium">
+              {visibleQuestions.length === 0
+                ? "No question in current filter"
+                : `Question ${boundedIndex + 1} of ${visibleQuestions.length}`}
+            </p>
+            <p className="text-sm text-muted-foreground">
+              {visibleQuestions.length} questions in view
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={visibleQuestions.length === 0 || boundedIndex === 0}
+              onClick={() => setCurrentIndex(Math.max(boundedIndex - 1, 0))}
+            >
+              <ChevronLeft data-icon="inline-start" />
+              Previous
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={visibleQuestions.length === 0 || boundedIndex >= visibleQuestions.length - 1}
+              onClick={() => setCurrentIndex(Math.min(boundedIndex + 1, lastIndex))}
+            >
+              Next
+              <ChevronRight data-icon="inline-end" />
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() =>
+                onFiltersChange({ ...filters, part: "All", topic: "All", difficulty: "All" })
+              }
+            >
+              Reset part filters
+            </Button>
+          </div>
         </div>
         <AnimatePresence mode="popLayout">
-          {visibleQuestions.map((question) => (
+          {currentQuestion ? (
             <QuestionCard
-              key={question.id}
-              question={question}
-              answer={answers[question.id] ?? ""}
+              key={currentQuestion.id}
+              question={currentQuestion}
+              answer={answers[currentQuestion.id] ?? ""}
               listeningReasons={listeningReasons}
-              result={results.find((item) => item.questionId === question.id)}
+              result={currentResult}
               onAnswer={onAnswer}
               onToggleListeningReason={onToggleListeningReason}
             />
-          ))}
+          ) : (
+            <Card>
+              <CardHeader>
+                <CardTitle>No matching practice question</CardTitle>
+                <CardDescription>
+                  当前筛选没有题目。请切换 Paper / Part / Topic / Difficulty，或重置筛选。
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Button
+                  variant="outline"
+                  onClick={() =>
+                    onFiltersChange({ ...filters, part: "All", topic: "All", difficulty: "All" })
+                  }
+                >
+                  Reset part filters
+                </Button>
+              </CardContent>
+            </Card>
+          )}
         </AnimatePresence>
       </div>
     </div>
