@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ChevronLeft, ChevronRight, ClipboardList, RotateCcw } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
@@ -30,6 +30,7 @@ export function PracticePanel({
   listeningReasons,
   onFiltersChange,
   onAnswer,
+  onSubmitAttempt,
   onToggleListeningReason,
 }: {
   allQuestions: PracticeQuestion[];
@@ -40,10 +41,12 @@ export function PracticePanel({
   listeningReasons: ListeningReasonMap;
   onFiltersChange: (filters: PracticeFilters) => void;
   onAnswer: (questionId: string, value: string) => void;
+  onSubmitAttempt: (question: PracticeQuestion, timeSpentSec: number) => void;
   onToggleListeningReason: (questionId: string, reason: ListeningErrorReason) => void;
 }) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [submitted, setSubmitted] = useState<SubmittedMap>({});
+  const startedAt = useRef(0);
   const lastIndex = Math.max(visibleQuestions.length - 1, 0);
   const boundedIndex = Math.min(currentIndex, lastIndex);
   const currentQuestion = visibleQuestions[boundedIndex];
@@ -55,12 +58,21 @@ export function PracticePanel({
 
   function updateFilters(nextFilters: PracticeFilters) {
     setCurrentIndex(0);
+    startedAt.current = 0;
     onFiltersChange(nextFilters);
   }
+
+  useEffect(() => {
+    queueMicrotask(() => {
+      startedAt.current = Date.now();
+    });
+  }, [currentQuestion?.id]);
 
   function submitCurrent() {
     if (!currentQuestion) return;
     setSubmitted((current) => ({ ...current, [currentQuestion.id]: true }));
+    const start = startedAt.current || Date.now();
+    onSubmitAttempt(currentQuestion, Math.max(1, Math.round((Date.now() - start) / 1000)));
   }
 
   return (
