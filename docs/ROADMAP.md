@@ -65,3 +65,11 @@ Explicitly out of scope:
 - Printable family reports
 - Audio recording support for Speaking practice
 - More granular PET rubric mapping
+
+## Completed
+
+### v0.1.2 — Sprint 1.2 Baseline
+Status: completed
+
+Focus:
+Child-usable Practice Experience.
