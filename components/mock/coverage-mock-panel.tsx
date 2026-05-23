@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ArrowLeft, ArrowRight, CheckCircle2, PlayCircle } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -26,6 +26,7 @@ export function CoverageMockPanel({
   onMove,
   onComplete,
   onAnswer,
+  onSubmitAttempt,
   onToggleListeningReason,
 }: {
   session?: MockSession;
@@ -37,10 +38,18 @@ export function CoverageMockPanel({
   onMove: (index: number) => void;
   onComplete: () => void;
   onAnswer: (questionId: string, value: string) => void;
+  onSubmitAttempt: (question: PracticeQuestion, timeSpentSec: number) => void;
   onToggleListeningReason: (questionId: string, reason: ListeningErrorReason) => void;
 }) {
   const [submitted, setSubmitted] = useState<Record<string, boolean>>({});
   const [reviewCompleted, setReviewCompleted] = useState(false);
+  const startedAt = useRef(0);
+
+  useEffect(() => {
+    queueMicrotask(() => {
+      startedAt.current = Date.now();
+    });
+  }, [session?.currentIndex]);
 
   if (!session) {
     return (
@@ -164,9 +173,11 @@ export function CoverageMockPanel({
             setSubmitted((current) => ({ ...current, [questionId]: false }));
             onAnswer(questionId, value);
           }}
-          onSubmit={() =>
-            setSubmitted((current) => ({ ...current, [currentQuestion.id]: true }))
-          }
+          onSubmit={() => {
+            setSubmitted((current) => ({ ...current, [currentQuestion.id]: true }));
+            const start = startedAt.current || Date.now();
+            onSubmitAttempt(currentQuestion, Math.max(1, Math.round((Date.now() - start) / 1000)));
+          }}
           onNext={() => onMove(Math.min(session.currentIndex + 1, questions.length - 1))}
           nextDisabled={session.currentIndex >= questions.length - 1}
           onToggleListeningReason={onToggleListeningReason}

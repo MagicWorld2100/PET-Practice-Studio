@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 
+import { AnalyticsPanel } from "@/components/analytics/analytics-panel";
 import { DiagnosisPanel } from "@/components/diagnosis/diagnosis-panel";
 import { ImportBankPanel } from "@/components/import/import-bank-panel";
 import { HeroPanel } from "@/components/layout/hero-panel";
@@ -10,7 +11,16 @@ import { ParentFeedbackPanel } from "@/components/parent/parent-feedback-panel";
 import { PracticePanel } from "@/components/practice/practice-panel";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { sampleQuestionBank } from "@/data/sample-bank";
-import { buildDiagnosisSummary, buildParentFeedback } from "@/lib/diagnostics";
+import {
+  buildLearningAnalytics,
+  buildTrendAwareParentFeedback,
+  completeSession,
+  createAttemptRecord,
+  createParentReport,
+  createPracticeSession,
+  updateSessionWithAttempt,
+} from "@/lib/analytics";
+import { buildDiagnosisSummary } from "@/lib/diagnostics";
 import { completeMockSession, createCoverageMockSession } from "@/lib/mock";
 import {
   defaultFilters,
@@ -18,11 +28,12 @@ import {
   isPracticeQuestion,
   type PracticeFilters,
 } from "@/lib/questions";
-import { scoreQuestionBank } from "@/lib/scoring";
+import { scoreQuestion, scoreQuestionBank } from "@/lib/scoring";
 import {
   clearProgress,
   defaultProgressState,
   isLearningExport,
+  isLegacyLearningExport,
   loadProgress,
   saveProgress,
 } from "@/lib/storage";
@@ -30,6 +41,8 @@ import type {
   ListeningErrorReason,
   LocalLearningExport,
   MockSession,
+  PracticeQuestion,
+  PracticeSession,
   ProgressState,
 } from "@/types/question";
 
@@ -40,6 +53,7 @@ export function PetPracticeStudio() {
   const [importText, setImportText] = useState("");
   const [exportText, setExportText] = useState("");
   const [importMessage, setImportMessage] = useState("");
+  const [activeTab, setActiveTab] = useState("practice");
 
   useEffect(() => {
     queueMicrotask(() => {
@@ -74,8 +88,12 @@ export function PetPracticeStudio() {
     [allQuestions, allScoring, progress.listeningReasons],
   );
   const parentFeedback = useMemo(
-    () => buildParentFeedback(allQuestions, allScoring, diagnosis),
-    [allQuestions, allScoring, diagnosis],
+    () => buildTrendAwareParentFeedback(progress.attempts, progress.sessions),
+    [progress.attempts, progress.sessions],
+  );
+  const analytics = useMemo(
+    () => buildLearningAnalytics(progress.attempts),
+    [progress.attempts],
   );
   const latestMockSession = progress.mockSessions.find(
     (session) => session.id === progress.latestMockSessionId,
@@ -109,8 +127,91 @@ export function PetPracticeStudio() {
       return {
         ...current,
         listeningReasons: { ...current.listeningReasons, [questionId]: nextReasons },
+        attempts: current.attempts.map((attempt, index, attempts) =>
+          attempt.questionId === questionId &&
+          index === attempts.findLastIndex((item) => item.questionId === questionId)
+            ? { ...attempt, listeningErrorReason: nextReasons[0] }
+            : attempt,
+        ),
       };
     });
+  }
+
+  function submitAttempt(
+    question: PracticeQuestion,
+    mode: PracticeSession["mode"],
+    timeSpentSec: number,
+    answerOverride?: string,
+  ) {
+    setProgress((current) => {
+      const session =
+        current.sessions.find((item) => item.sessionId === current.activeSessionId && !item.completedAt) ??
+        createPracticeSession(mode);
+      const nextAnswers =
+        answerOverride === undefined
+          ? current.answers
+          : { ...current.answers, [question.id]: answerOverride };
+      const result = scoreQuestion(question, nextAnswers);
+      const attempt = createAttemptRecord({
+        question,
+        result,
+        answer: nextAnswers[question.id] ?? "",
+        sessionId: session.sessionId,
+        listeningErrorReason: current.listeningReasons[question.id]?.[0],
+        timeSpentSec,
+      });
+      const updatedSession = updateSessionWithAttempt(session, attempt);
+      const existingSession = current.sessions.some((item) => item.sessionId === session.sessionId);
+
+      return {
+        ...current,
+        answers: nextAnswers,
+        attempts: [...current.attempts, attempt],
+        sessions: existingSession
+          ? current.sessions.map((item) => (item.sessionId === session.sessionId ? updatedSession : item))
+          : [...current.sessions, updatedSession],
+        activeSessionId: updatedSession.sessionId,
+      };
+    });
+  }
+
+  function endActiveSession() {
+    setProgress((current) => {
+      if (!current.activeSessionId) return current;
+      const active = current.sessions.find(
+        (session) => session.sessionId === current.activeSessionId && !session.completedAt,
+      );
+      if (!active) return current;
+      return {
+        ...current,
+        sessions: current.sessions.map((session) =>
+          session.sessionId === active.sessionId ? completeSession(session) : session,
+        ),
+        activeSessionId: undefined,
+      };
+    });
+  }
+
+  function handleTabChange(value: string) {
+    setActiveTab(value);
+    if (value === "parent") {
+      setProgress((current) => {
+        const feedback = buildTrendAwareParentFeedback(current.attempts, current.sessions);
+        const active = current.activeSessionId;
+        const sessions = active
+          ? current.sessions.map((session) =>
+              session.sessionId === active && !session.completedAt ? completeSession(session) : session,
+            )
+          : current.sessions;
+
+        return {
+          ...current,
+          sessions,
+          activeSessionId: undefined,
+          parentReports: [...current.parentReports, createParentReport(feedback, active)],
+        };
+      });
+    }
   }
 
   function importQuestions() {
@@ -136,13 +237,15 @@ export function PetPracticeStudio() {
 
   function exportLearningData() {
     const exportObject: LocalLearningExport = {
-      bank: allQuestions,
-      answers: progress.answers,
-      results: allScoring.results,
-      listeningReasons: progress.listeningReasons,
-      mockSessions: progress.mockSessions,
+      version: "0.1.3",
       exportedAt: new Date().toISOString(),
-      version: 1,
+      questionBank: allQuestions,
+      answers: progress.answers,
+      attempts: progress.attempts,
+      sessions: progress.sessions,
+      mockSessions: progress.mockSessions,
+      parentReports: progress.parentReports,
+      settings: progress.settings,
     };
 
     setExportText(JSON.stringify(exportObject, null, 2));
@@ -153,20 +256,42 @@ export function PetPracticeStudio() {
     try {
       const parsed = JSON.parse(importText) as unknown;
       if (!isLearningExport(parsed)) {
-        setImportMessage("这不是有效的 Sprint 1 learning export JSON。");
+        if (!isLegacyLearningExport(parsed)) {
+          setImportMessage("这不是有效的 learning export JSON。");
+          return;
+        }
+        const legacy = parsed as {
+          bank: PracticeQuestion[];
+          answers: Record<string, string>;
+          mockSessions: MockSession[];
+        };
+        const importedOnly = legacy.bank.filter(
+          (question) => !sampleQuestionBank.some((sample) => sample.id === question.id),
+        );
+        setProgress((current) => ({
+          ...current,
+          answers: legacy.answers,
+          importedQuestions: mergeQuestionBanks(current.importedQuestions, importedOnly),
+          mockSessions: legacy.mockSessions,
+          latestMockSessionId: legacy.mockSessions.at(-1)?.id,
+        }));
+        setImportMessage("已恢复旧版本地学习数据。新历史记录会从下一次提交开始记录。");
         return;
       }
 
-      const importedOnly = parsed.bank.filter(
+      const importedOnly = parsed.questionBank.filter(
         (question) => !sampleQuestionBank.some((sample) => sample.id === question.id),
       );
 
       setProgress((current) => ({
         ...current,
         answers: parsed.answers,
-        listeningReasons: parsed.listeningReasons ?? {},
         importedQuestions: mergeQuestionBanks(current.importedQuestions, importedOnly),
+        attempts: parsed.attempts,
+        sessions: parsed.sessions,
         mockSessions: parsed.mockSessions,
+        parentReports: parsed.parentReports,
+        settings: parsed.settings,
         latestMockSessionId: parsed.mockSessions.at(-1)?.id,
       }));
       setImportMessage("已恢复本地学习数据。");
@@ -208,10 +333,13 @@ export function PetPracticeStudio() {
 
   function startCoverageMock() {
     const session = createCoverageMockSession(allQuestions);
+    const analyticsSession = createPracticeSession("coverageMock");
     setProgress((current) => ({
       ...current,
       mockSessions: [...current.mockSessions, session],
       latestMockSessionId: session.id,
+      sessions: [...current.sessions, analyticsSession],
+      activeSessionId: analyticsSession.sessionId,
     }));
   }
 
@@ -251,10 +379,11 @@ export function PetPracticeStudio() {
       </section>
 
       <section className="mx-auto w-full max-w-7xl px-4 py-4 sm:px-6 lg:px-8">
-        <Tabs defaultValue="practice">
+        <Tabs value={activeTab} onValueChange={handleTabChange}>
           <TabsList className="w-full justify-start">
             <TabsTrigger value="practice">Practice</TabsTrigger>
             <TabsTrigger value="mock">Coverage Mock</TabsTrigger>
+            <TabsTrigger value="analytics">Analytics / 学习追踪</TabsTrigger>
             <TabsTrigger value="diagnosis">Diagnosis</TabsTrigger>
             <TabsTrigger value="parent">Parent Feedback</TabsTrigger>
             <TabsTrigger value="import">Import / Export</TabsTrigger>
@@ -265,11 +394,14 @@ export function PetPracticeStudio() {
               allQuestions={allQuestions}
               visibleQuestions={visibleQuestions}
               filters={filters}
-              answers={progress.answers}
+              attempts={progress.attempts}
               results={visibleScoring.results}
               listeningReasons={progress.listeningReasons}
               onFiltersChange={setFilters}
               onAnswer={updateAnswer}
+              onSubmitAttempt={(question, timeSpentSec, answer) =>
+                submitAttempt(question, "practice", timeSpentSec, answer)
+              }
               onToggleListeningReason={toggleListeningReason}
             />
           </TabsContent>
@@ -285,7 +417,19 @@ export function PetPracticeStudio() {
               onMove={moveMock}
               onComplete={finishMock}
               onAnswer={updateAnswer}
+              onSubmitAttempt={(question, timeSpentSec) =>
+                submitAttempt(question, "coverageMock", timeSpentSec)
+              }
               onToggleListeningReason={toggleListeningReason}
+            />
+          </TabsContent>
+
+          <TabsContent value="analytics">
+            <AnalyticsPanel
+              analytics={analytics}
+              attempts={progress.attempts}
+              sessions={progress.sessions}
+              questions={allQuestions}
             />
           </TabsContent>
 
@@ -294,7 +438,7 @@ export function PetPracticeStudio() {
           </TabsContent>
 
           <TabsContent value="parent">
-            <ParentFeedbackPanel feedback={parentFeedback} />
+            <ParentFeedbackPanel feedback={parentFeedback} onEndSession={endActiveSession} />
           </TabsContent>
 
           <TabsContent value="import">

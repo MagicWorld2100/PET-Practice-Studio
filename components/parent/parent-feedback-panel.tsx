@@ -1,12 +1,31 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import type { ParentFeedback } from "@/lib/diagnostics";
 
-export function ParentFeedbackPanel({ feedback }: { feedback: ParentFeedback }) {
+export function ParentFeedbackPanel({
+  feedback,
+  onEndSession,
+}: {
+  feedback: ParentFeedback;
+  onEndSession?: () => void;
+}) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>家长反馈摘要</CardTitle>
-        <CardDescription>简短、可执行，不把一次练习讲成长期结论。</CardDescription>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <CardTitle>家长反馈摘要</CardTitle>
+            <CardDescription>简短、可执行，不把一次练习讲成长期结论。</CardDescription>
+          </div>
+          {onEndSession ? (
+            <button
+              type="button"
+              className="rounded-md border px-3 py-2 text-sm font-medium"
+              onClick={onEndSession}
+            >
+              End current session
+            </button>
+          ) : null}
+        </div>
       </CardHeader>
       <CardContent className="grid gap-4 lg:grid-cols-2">
         <FeedbackBlock title="1. 今日完成内容" body={feedback.completedContent} />

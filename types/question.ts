@@ -12,6 +12,7 @@ export type QuestionType =
 export type Difficulty = "foundation" | "standard" | "stretch";
 
 export type ListeningErrorReason = "没听到" | "反应慢" | "词不会" | "选项混淆";
+export type LearningDataVersion = "0.1.3";
 
 export type QuestionOption = {
   id: string;
@@ -117,21 +118,87 @@ export type MockSession = {
   };
 };
 
+export type AttemptRecord = {
+  attemptId: string;
+  questionId: string;
+  sessionId: string;
+  paper: PetPaper;
+  part: string;
+  topic: string;
+  difficulty: string;
+  type: QuestionType;
+  answer: unknown;
+  correct?: boolean;
+  correctAnswer?: unknown;
+  diagnosisTags: string[];
+  listeningErrorReason?: ListeningErrorReason;
+  timeSpentSec: number;
+  wordCount?: number;
+  checklistHits?: number;
+  missingChecklistItems?: string[];
+  speakingWordCount?: number;
+  submittedAt: string;
+};
+
+export type PracticeSession = {
+  sessionId: string;
+  mode: "practice" | "coverageMock" | "review";
+  startedAt: string;
+  completedAt?: string;
+  attemptIds: string[];
+  papersCovered: string[];
+  totalAttempts: number;
+  correctObjectiveCount: number;
+  objectiveAttemptCount: number;
+  objectiveAccuracy: number;
+  durationSec?: number;
+};
+
+export type LearningAnalyticsSummary = {
+  todayAttempts: number;
+  last7DaysAttempts: number;
+  accuracyByPaper: { paper: PetPaper; correct: number; total: number; accuracy: number }[];
+  readingPartPerformance: { part: string; correct: number; total: number; accuracy: number }[];
+  listeningReasons: { reason: ListeningErrorReason; count: number }[];
+  topWeakTags: { tag: string; count: number }[];
+  writingTaskCompletion: { completed: number; total: number; rate: number };
+  speakingLengthTrend: { submittedAt: string; wordCount: number }[];
+};
+
+export type ParentReport = {
+  reportId: string;
+  createdAt: string;
+  sessionId?: string;
+  completedContent: string;
+  obviousProgress: string;
+  keyProblems: string[];
+  tomorrowTasks: string[];
+  intervention: string;
+};
+
 export type ProgressState = {
+  version: LearningDataVersion;
   answers: AnswerMap;
   listeningReasons: ListeningReasonMap;
   importedQuestions: PracticeQuestion[];
+  attempts: AttemptRecord[];
+  sessions: PracticeSession[];
   mockSessions: MockSession[];
+  parentReports: ParentReport[];
+  settings: Record<string, unknown>;
+  activeSessionId?: string;
   latestMockSessionId?: string;
   updatedAt: string;
 };
 
 export type LocalLearningExport = {
-  bank: PracticeQuestion[];
-  answers: AnswerMap;
-  results: QuestionResult[];
-  listeningReasons: ListeningReasonMap;
-  mockSessions: MockSession[];
+  version: "0.1.3";
   exportedAt: string;
-  version: 1;
+  questionBank: PracticeQuestion[];
+  answers: AnswerMap;
+  attempts: AttemptRecord[];
+  sessions: PracticeSession[];
+  mockSessions: MockSession[];
+  parentReports: ParentReport[];
+  settings: Record<string, unknown>;
 };

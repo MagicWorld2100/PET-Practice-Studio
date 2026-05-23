@@ -74,6 +74,9 @@ Stored local data includes:
 
 - answers
 - Listening mistake reasons
+- every submitted attempt
+- practice session history
+- parent report snapshots
 - imported local questions
 - latest Coverage Mock sessions
 
@@ -81,13 +84,15 @@ The Import / Export tab can export a local learning JSON object:
 
 ```ts
 {
-  bank,
-  answers,
-  results,
-  listeningReasons,
-  mockSessions,
+  version: "0.1.3",
   exportedAt,
-  version
+  questionBank,
+  answers,
+  attempts,
+  sessions,
+  mockSessions,
+  parentReports,
+  settings
 }
 ```
 
@@ -105,6 +110,7 @@ Coverage Mock is a short learning-flow check, not an official timed mock and not
 ```text
 app/
 components/
+  analytics/
   diagnosis/
   import/
   layout/
@@ -135,6 +141,9 @@ Key files:
 - [Sprint 1 issue backlog](docs/SPRINT-1-ISSUES.md)
 - [Sprint 1.2 local issue backlog](docs/SPRINT-1-2-ISSUES.md)
 - [Sprint 1.2 manual QA checklist](docs/QA-Sprint-1-2.md)
+- [Sprint 1.3 issue links](docs/SPRINT-1-3-ISSUES.md)
+- [Sprint 1.3 manual QA checklist](docs/QA-Sprint-1-3.md)
+- [Family trial log template](docs/TRIAL-LOG.md)
 
 ## Future Roadmap
 
