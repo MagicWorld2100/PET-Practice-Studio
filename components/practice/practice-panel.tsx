@@ -10,7 +10,6 @@ import { QuestionCard } from "@/components/practice/question-card";
 import { difficultyOrder, paperOrder } from "@/data/sample-bank";
 import { filterQuestions, getAvailableParts, getAvailableTopics, type PracticeFilters } from "@/lib/questions";
 import type {
-  AnswerMap,
   AttemptRecord,
   Difficulty,
   ListeningErrorReason,
@@ -21,12 +20,12 @@ import type {
 } from "@/types/question";
 
 type SubmittedMap = Record<string, boolean>;
+type DraftAnswerMap = Record<string, string>;
 
 export function PracticePanel({
   allQuestions,
   visibleQuestions,
   filters,
-  answers,
   attempts,
   results,
   listeningReasons,
@@ -38,22 +37,22 @@ export function PracticePanel({
   allQuestions: PracticeQuestion[];
   visibleQuestions: PracticeQuestion[];
   filters: PracticeFilters;
-  answers: AnswerMap;
   attempts: AttemptRecord[];
   results: QuestionResult[];
   listeningReasons: ListeningReasonMap;
   onFiltersChange: (filters: PracticeFilters) => void;
   onAnswer: (questionId: string, value: string) => void;
-  onSubmitAttempt: (question: PracticeQuestion, timeSpentSec: number) => void;
+  onSubmitAttempt: (question: PracticeQuestion, timeSpentSec: number, answer: string) => void;
   onToggleListeningReason: (questionId: string, reason: ListeningErrorReason) => void;
 }) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [submitted, setSubmitted] = useState<SubmittedMap>({});
+  const [draftAnswers, setDraftAnswers] = useState<DraftAnswerMap>({});
   const startedAt = useRef(0);
   const lastIndex = Math.max(visibleQuestions.length - 1, 0);
   const boundedIndex = Math.min(currentIndex, lastIndex);
   const currentQuestion = visibleQuestions[boundedIndex];
-  const currentAnswer = currentQuestion ? (answers[currentQuestion.id] ?? "") : "";
+  const currentAnswer = currentQuestion ? (draftAnswers[currentQuestion.id] ?? "") : "";
   const currentResult =
     currentQuestion && submitted[currentQuestion.id]
       ? results.find((item) => item.questionId === currentQuestion.id)
@@ -75,7 +74,11 @@ export function PracticePanel({
     if (!currentQuestion) return;
     setSubmitted((current) => ({ ...current, [currentQuestion.id]: true }));
     const start = startedAt.current || Date.now();
-    onSubmitAttempt(currentQuestion, Math.max(1, Math.round((Date.now() - start) / 1000)));
+    onSubmitAttempt(
+      currentQuestion,
+      Math.max(1, Math.round((Date.now() - start) / 1000)),
+      currentAnswer,
+    );
   }
 
   return (
@@ -114,6 +117,7 @@ export function PracticePanel({
                 listeningReasons={listeningReasons}
                 onAnswer={(questionId, value) => {
                   setSubmitted((current) => ({ ...current, [questionId]: false }));
+                  setDraftAnswers((current) => ({ ...current, [questionId]: value }));
                   onAnswer(questionId, value);
                 }}
                 onSubmit={submitCurrent}

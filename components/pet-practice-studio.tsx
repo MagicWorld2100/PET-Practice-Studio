@@ -137,16 +137,25 @@ export function PetPracticeStudio() {
     });
   }
 
-  function submitAttempt(question: PracticeQuestion, mode: PracticeSession["mode"], timeSpentSec: number) {
+  function submitAttempt(
+    question: PracticeQuestion,
+    mode: PracticeSession["mode"],
+    timeSpentSec: number,
+    answerOverride?: string,
+  ) {
     setProgress((current) => {
       const session =
         current.sessions.find((item) => item.sessionId === current.activeSessionId && !item.completedAt) ??
         createPracticeSession(mode);
-      const result = scoreQuestion(question, current.answers);
+      const nextAnswers =
+        answerOverride === undefined
+          ? current.answers
+          : { ...current.answers, [question.id]: answerOverride };
+      const result = scoreQuestion(question, nextAnswers);
       const attempt = createAttemptRecord({
         question,
         result,
-        answer: current.answers[question.id] ?? "",
+        answer: nextAnswers[question.id] ?? "",
         sessionId: session.sessionId,
         listeningErrorReason: current.listeningReasons[question.id]?.[0],
         timeSpentSec,
@@ -156,6 +165,7 @@ export function PetPracticeStudio() {
 
       return {
         ...current,
+        answers: nextAnswers,
         attempts: [...current.attempts, attempt],
         sessions: existingSession
           ? current.sessions.map((item) => (item.sessionId === session.sessionId ? updatedSession : item))
@@ -384,14 +394,13 @@ export function PetPracticeStudio() {
               allQuestions={allQuestions}
               visibleQuestions={visibleQuestions}
               filters={filters}
-              answers={progress.answers}
               attempts={progress.attempts}
               results={visibleScoring.results}
               listeningReasons={progress.listeningReasons}
               onFiltersChange={setFilters}
               onAnswer={updateAnswer}
-              onSubmitAttempt={(question, timeSpentSec) =>
-                submitAttempt(question, "practice", timeSpentSec)
+              onSubmitAttempt={(question, timeSpentSec, answer) =>
+                submitAttempt(question, "practice", timeSpentSec, answer)
               }
               onToggleListeningReason={toggleListeningReason}
             />
