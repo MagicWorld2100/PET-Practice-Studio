@@ -34,15 +34,24 @@ import type {
 } from "@/types/question";
 
 export function PetPracticeStudio() {
-  const [progress, setProgress] = useState<ProgressState>(() => loadProgress());
+  const [progress, setProgress] = useState<ProgressState>(defaultProgressState);
+  const [hasLoadedProgress, setHasLoadedProgress] = useState(false);
   const [filters, setFilters] = useState<PracticeFilters>(defaultFilters);
   const [importText, setImportText] = useState("");
   const [exportText, setExportText] = useState("");
   const [importMessage, setImportMessage] = useState("");
 
   useEffect(() => {
+    queueMicrotask(() => {
+      setProgress(loadProgress());
+      setHasLoadedProgress(true);
+    });
+  }, []);
+
+  useEffect(() => {
+    if (!hasLoadedProgress) return;
     saveProgress(progress);
-  }, [progress]);
+  }, [hasLoadedProgress, progress]);
 
   const allQuestions = useMemo(
     () => mergeQuestionBanks(sampleQuestionBank, progress.importedQuestions),
