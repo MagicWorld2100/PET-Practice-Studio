@@ -1,5 +1,11 @@
 # PET Practice Studio
 
+## Current Status
+
+**v0.1.2 — Sprint 1.2 Baseline**
+
+The app now supports a child-usable PET practice loop:
+Practice → Check → Feedback → Diagnosis → Parent Feedback.
 PET Practice Studio is a browser-based Cambridge B1 Preliminary for Schools practice app for family use. Sprint 1 focuses on making the full local learning loop usable by a child in the browser, then giving parents a concise view of progress and next steps.
 
 This is not a commercial public launch and not an official Cambridge mock-test product. All sample practice content in this repository is original demo content, not copied from copyrighted past papers.
