@@ -31,6 +31,7 @@ export type ExplanationDetails = {
   locatorWords?: string[];
   whyCorrect?: string;
   whyWrong?: string;
+  nextStep?: string;
 };
 
 export type PracticeQuestion = {
@@ -93,6 +94,7 @@ export type ScoreSummary = {
 export type AttemptResult = QuestionResult & {
   answer: string;
   completedAt: string;
+  listeningErrorReasons?: ListeningErrorReason[];
 };
 
 export type MockSession = {
@@ -109,6 +111,9 @@ export type MockSession = {
     objectiveCorrect: number;
     objectiveTotal: number;
     average: number;
+    weakestPaper?: PetPaper | "暂无";
+    topTags?: string[];
+    recommendedNextTraining?: string;
   };
 };
 

@@ -29,7 +29,13 @@ export function ObjectiveQuestion({
           <p className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
             Choose one answer
           </p>
-          {!answer ? <p className="mt-1 text-sm text-muted-foreground">Choose one answer first.</p> : null}
+          <p className="mt-1 text-sm text-muted-foreground">
+            {!answer
+              ? "Choose one answer."
+              : isSubmitted
+                ? "Read the feedback, then go next."
+                : "Now check your answer."}
+          </p>
         </div>
 
         <div className="grid gap-3">
@@ -41,7 +47,7 @@ export function ObjectiveQuestion({
                 type="button"
                 className={cn(
                   "flex w-full items-start gap-4 rounded-xl border bg-card p-4 text-left shadow-sm transition-colors hover:border-primary hover:bg-accent",
-                  selected && "border-primary bg-secondary ring-2 ring-primary/20",
+                  selected && "border-primary bg-secondary ring-2 ring-primary shadow-md",
                 )}
                 onClick={() => onAnswer(question.id, option.id)}
               >
@@ -60,14 +66,14 @@ export function ObjectiveQuestion({
         </div>
 
         <div className="rounded-lg border bg-muted/40 p-3 text-sm text-muted-foreground">
-          Selected:{" "}
+          Your answer:{" "}
           <span className="font-medium text-foreground">
-            {answer ? `${answer}${selectedLabel ? ` · ${selectedLabel}` : ""}` : "none"}
+            {answer ? `${answer}${selectedLabel ? ` - ${selectedLabel}` : ""}` : "Choose one answer"}
           </span>
         </div>
 
         <Button size="lg" disabled={!answer} onClick={onSubmit}>
-          Submit / Check answer
+          {isSubmitted ? "Checked" : "Check my answer"}
         </Button>
 
         {isSubmitted && result ? <ObjectiveResult question={question} result={result} /> : null}
@@ -83,9 +89,9 @@ export function ObjectiveQuestion({
         placeholder="Type your answer..."
         className="min-h-14 text-base"
       />
-      {!answer.trim() ? <p className="text-sm text-muted-foreground">Choose one answer first.</p> : null}
+      {!answer.trim() ? <p className="text-sm text-muted-foreground">Type your answer first.</p> : null}
       <Button size="lg" disabled={!answer.trim()} onClick={onSubmit}>
-        Submit / Check answer
+        {isSubmitted ? "Checked" : "Check my answer"}
       </Button>
       {isSubmitted && result ? <ObjectiveResult question={question} result={result} /> : null}
     </section>

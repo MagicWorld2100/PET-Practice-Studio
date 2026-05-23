@@ -127,6 +127,8 @@ Key files:
 - [Roadmap](docs/ROADMAP.md)
 - [Question schema](docs/QUESTION_SCHEMA.md)
 - [Sprint 1 issue backlog](docs/SPRINT-1-ISSUES.md)
+- [Sprint 1.2 local issue backlog](docs/SPRINT-1-2-ISSUES.md)
+- [Sprint 1.2 manual QA checklist](docs/QA-Sprint-1-2.md)
 
 ## Future Roadmap
 

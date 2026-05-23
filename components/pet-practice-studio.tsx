@@ -34,15 +34,24 @@ import type {
 } from "@/types/question";
 
 export function PetPracticeStudio() {
-  const [progress, setProgress] = useState<ProgressState>(() => loadProgress());
+  const [progress, setProgress] = useState<ProgressState>(defaultProgressState);
+  const [hasLoadedProgress, setHasLoadedProgress] = useState(false);
   const [filters, setFilters] = useState<PracticeFilters>(defaultFilters);
   const [importText, setImportText] = useState("");
   const [exportText, setExportText] = useState("");
   const [importMessage, setImportMessage] = useState("");
 
   useEffect(() => {
+    queueMicrotask(() => {
+      setProgress(loadProgress());
+      setHasLoadedProgress(true);
+    });
+  }, []);
+
+  useEffect(() => {
+    if (!hasLoadedProgress) return;
     saveProgress(progress);
-  }, [progress]);
+  }, [hasLoadedProgress, progress]);
 
   const allQuestions = useMemo(
     () => mergeQuestionBanks(sampleQuestionBank, progress.importedQuestions),
@@ -166,12 +175,35 @@ export function PetPracticeStudio() {
     }
   }
 
-  function resetProgress() {
+  function resetProgressOnly() {
+    if (!window.confirm("Reset answers, listening reasons, and mock results? Imported questions will stay.")) {
+      return;
+    }
+    setProgress((current) => ({
+      ...defaultProgressState,
+      importedQuestions: current.importedQuestions,
+    }));
+    setExportText("");
+    setImportMessage("Practice progress has been reset. Imported questions stayed.");
+  }
+
+  function resetAllLocalData() {
+    if (!window.confirm("Reset all local data, including imported questions and practice progress?")) {
+      return;
+    }
     clearProgress();
     setProgress(defaultProgressState);
     setImportText("");
     setExportText("");
-    setImportMessage("本地进度已清空。");
+    setImportMessage("All local data has been reset.");
+  }
+
+  function loadSampleData() {
+    setProgress((current) => ({
+      ...current,
+      importedQuestions: [],
+    }));
+    setImportMessage("Sample practice bank is ready.");
   }
 
   function startCoverageMock() {
@@ -192,7 +224,12 @@ export function PetPracticeStudio() {
 
   function finishMock() {
     if (!latestMockSession) return;
-    const completed = completeMockSession(latestMockSession, allQuestions, progress.answers);
+    const completed = completeMockSession(
+      latestMockSession,
+      allQuestions,
+      progress.answers,
+      progress.listeningReasons,
+    );
     updateLatestMock(() => completed);
   }
 
@@ -219,7 +256,7 @@ export function PetPracticeStudio() {
             <TabsTrigger value="practice">Practice</TabsTrigger>
             <TabsTrigger value="mock">Coverage Mock</TabsTrigger>
             <TabsTrigger value="diagnosis">Diagnosis</TabsTrigger>
-            <TabsTrigger value="parent">Parent feedback</TabsTrigger>
+            <TabsTrigger value="parent">Parent Feedback</TabsTrigger>
             <TabsTrigger value="import">Import / Export</TabsTrigger>
           </TabsList>
 
@@ -269,7 +306,10 @@ export function PetPracticeStudio() {
               onImportQuestions={importQuestions}
               onExportLearningData={exportLearningData}
               onImportLearningData={importLearningData}
-              onReset={resetProgress}
+              onResetProgressOnly={resetProgressOnly}
+              onResetAllLocalData={resetAllLocalData}
+              onLoadSampleData={loadSampleData}
+              bankIsEmpty={allQuestions.length === 0}
             />
           </TabsContent>
         </Tabs>

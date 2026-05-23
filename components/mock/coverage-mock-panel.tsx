@@ -40,6 +40,7 @@ export function CoverageMockPanel({
   onToggleListeningReason: (questionId: string, reason: ListeningErrorReason) => void;
 }) {
   const [submitted, setSubmitted] = useState<Record<string, boolean>>({});
+  const [reviewCompleted, setReviewCompleted] = useState(false);
 
   if (!session) {
     return (
@@ -47,13 +48,16 @@ export function CoverageMockPanel({
         <CardHeader>
           <CardTitle>Coverage Mock</CardTitle>
           <CardDescription>
-            覆盖 Reading、Listening、Writing、Speaking 的短流程，不是官方完整模考。
+            A short mini-test for family practice. This is not an official PET mock.
           </CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
+          <div className="grid gap-3 md:grid-cols-2">
+            <IntroBlock title="What this mock covers" body="Reading 6 + Listening 4 + Writing 1 + Speaking 2." />
+            <IntroBlock title="Estimated time" body="About 15-20 minutes. Keep it calm and short." />
+          </div>
           <p className="text-sm leading-6 text-muted-foreground">
-            开始后会抽取 Reading 6 题、Listening 4 题、Writing 1 题、Speaking 2 题。
-            结果会保存在 localStorage，方便家长查看今日学习情况。
+            Your latest result is saved locally in this browser for parent review.
           </p>
           <Button className="w-fit" onClick={onStart}>
             <PlayCircle data-icon="inline-start" />
@@ -74,28 +78,56 @@ export function CoverageMockPanel({
   const progressValue =
     questions.length === 0 ? 0 : Math.round(((session.currentIndex + 1) / questions.length) * 100);
 
+  if (session.completedAt && session.summary && !reviewCompleted) {
+    return (
+      <div className="flex flex-col gap-4">
+        <Card>
+          <CardHeader>
+            <CardTitle>Coverage Mock summary</CardTitle>
+            <CardDescription>
+              Finished mini-test result. This is a practice summary, not an official score.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="grid gap-3 md:grid-cols-2">
+            <SummaryBlock title="Completed questions" body={`${session.summary.completed}/${questions.length}`} />
+            <SummaryBlock
+              title="Correct objective questions"
+              body={`${session.summary.objectiveCorrect}/${session.summary.objectiveTotal}`}
+            />
+            <SummaryBlock title="Weakest paper" body={session.summary.weakestPaper ?? "暂无"} />
+            <SummaryBlock
+              title="Recommended next training"
+              body={session.summary.recommendedNextTraining ?? "Do 3 short Reading or Listening questions."}
+            />
+            <div className="rounded-lg border bg-muted/30 p-3 md:col-span-2">
+              <p className="font-medium">Top 3 diagnosis tags</p>
+              <p className="mt-2 text-sm text-muted-foreground">
+                {session.summary.topTags?.length ? session.summary.topTags.join(", ") : "No clear repeated tags yet."}
+              </p>
+            </div>
+            <div className="md:col-span-2">
+              <Button onClick={() => setReviewCompleted(true)}>
+                Review practice result
+                <ArrowRight data-icon="inline-end" />
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col gap-4">
       <Card>
         <CardHeader>
           <CardTitle>Coverage Mock</CardTitle>
           <CardDescription>
-            Question {Math.min(session.currentIndex + 1, questions.length)}/{questions.length}
+            Question {Math.min(session.currentIndex + 1, questions.length)} of {questions.length || 13}
           </CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
           <Progress value={progressValue} />
-          {session.completedAt && session.summary ? (
-            <div className="rounded-lg border bg-card p-4 text-sm leading-6 text-muted-foreground">
-              <p className="font-medium text-foreground">Final summary</p>
-              <p>Completed: {session.summary.completed}/{questions.length}</p>
-              <p>
-                Objective accuracy: {session.summary.objectiveCorrect}/
-                {session.summary.objectiveTotal}
-              </p>
-              <p>Overall average: {session.summary.average}%</p>
-            </div>
-          ) : null}
           <div className="flex flex-wrap gap-2">
             <Button
               variant="outline"
@@ -135,9 +167,29 @@ export function CoverageMockPanel({
           onSubmit={() =>
             setSubmitted((current) => ({ ...current, [currentQuestion.id]: true }))
           }
+          onNext={() => onMove(Math.min(session.currentIndex + 1, questions.length - 1))}
+          nextDisabled={session.currentIndex >= questions.length - 1}
           onToggleListeningReason={onToggleListeningReason}
         />
       ) : null}
+    </div>
+  );
+}
+
+function IntroBlock({ title, body }: { title: string; body: string }) {
+  return (
+    <div className="rounded-lg border bg-muted/30 p-3">
+      <p className="font-medium">{title}</p>
+      <p className="mt-2 text-sm leading-6 text-muted-foreground">{body}</p>
+    </div>
+  );
+}
+
+function SummaryBlock({ title, body }: { title: string; body: string }) {
+  return (
+    <div className="rounded-lg border bg-muted/30 p-3">
+      <p className="font-medium">{title}</p>
+      <p className="mt-2 text-sm leading-6 text-muted-foreground">{body}</p>
     </div>
   );
 }

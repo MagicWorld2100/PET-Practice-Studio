@@ -80,6 +80,9 @@ export function buildParentFeedback(
   const expressionResults = answered.filter(
     (result) => result.type === "writing" || result.type === "speaking",
   );
+  const writingResult = answered.find((result) => result.type === "writing");
+  const speakingResult = answered.find((result) => result.type === "speaking");
+  const listeningReason = diagnosis.listeningReasons[0];
   const topProblems = [
     ...diagnosis.issues.map((item) => `${item.tag}: ${item.advice}`),
     ...diagnosis.listeningReasons.map((item) => `听力-${item.tag}: ${item.advice}`),
@@ -97,7 +100,13 @@ export function buildParentFeedback(
     completedContent:
       answered.length === 0
         ? "今天还没有完成练习。"
-        : `今天完成 ${answered.length}/${questions.length} 题，客观题正确 ${scoring.objectiveCorrect}/${scoring.objectiveTotal}。`,
+        : `今天完成 ${answered.length}/${questions.length} 题，客观题正确 ${scoring.objectiveCorrect}/${scoring.objectiveTotal}。${
+            writingResult
+              ? ` Writing 完成 ${writingResult.checklistHits?.length ?? 0}/${
+                  (writingResult.checklistHits?.length ?? 0) + (writingResult.missingItems?.length ?? 0)
+                } 个信息点。`
+              : ""
+          }${speakingResult ? ` Speaking 输出约 ${speakingResult.wordCount ?? 0} 词。` : ""}`,
     obviousProgress:
       expressionResults.length > 0
         ? "孩子已经开始输出 Writing/Speaking，建议优先肯定完成度，再看细节。"
@@ -106,9 +115,11 @@ export function buildParentFeedback(
           : "暂时没有足够数据判断进步。",
     keyProblems: topProblems,
     tomorrowTasks: [
-      diagnosis.weakestPart === "暂无明显薄弱 part"
-        ? "做 3 道 Reading 或 Listening foundation/standard 题。"
-        : `复盘 ${diagnosis.weakestPart}，再做 2 道同 part 短题。`,
+      listeningReason
+        ? `先做 1 题 Listening，重点处理“${listeningReason.tag}”：${listeningReason.advice}`
+        : diagnosis.weakestPart === "暂无明显薄弱 part"
+          ? "做 3 道 Reading 或 Listening foundation/standard 题。"
+          : `复盘 ${diagnosis.weakestPart}，再做 2 道同 part 短题。`,
       "补一题 Writing 或 Speaking，只要求完整回答，不追求完美。",
       "把一个错因标签讲给家长听，确认孩子知道错在哪里。",
     ],

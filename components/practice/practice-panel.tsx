@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { QuestionCard } from "@/components/practice/question-card";
 import { difficultyOrder, paperOrder } from "@/data/sample-bank";
-import { getAvailableParts, getAvailableTopics, type PracticeFilters } from "@/lib/questions";
+import { filterQuestions, getAvailableParts, getAvailableTopics, type PracticeFilters } from "@/lib/questions";
 import type {
   AnswerMap,
   Difficulty,
@@ -91,6 +91,8 @@ export function PracticePanel({
                   onAnswer(questionId, value);
                 }}
                 onSubmit={submitCurrent}
+                onNext={() => setCurrentIndex(Math.min(boundedIndex + 1, lastIndex))}
+                nextDisabled={boundedIndex >= visibleQuestions.length - 1}
                 onToggleListeningReason={onToggleListeningReason}
               />
             </div>
@@ -181,8 +183,27 @@ function NavigatorPanel({
   filters: PracticeFilters;
   onFiltersChange: (filters: PracticeFilters) => void;
 }) {
-  const parts = getAvailableParts(questions, filters.paper);
-  const topics = getAvailableTopics(questions, filters.paper);
+  const currentCount = filterQuestions(questions, filters).length;
+  const paperOptions = (["All", ...paperOrder] as const).map((paper) => ({
+    value: paper,
+    label: paper === "All" ? "All papers" : paper,
+    count: filterQuestions(questions, { paper, part: "All", topic: "All", difficulty: "All" }).length,
+  }));
+  const parts = buildFilterOptions(
+    getAvailableParts(questions, filters.paper),
+    (part) => ({ ...filters, part }),
+    questions,
+  );
+  const topics = buildFilterOptions(
+    getAvailableTopics(questions, filters.paper),
+    (topic) => ({ ...filters, topic }),
+    questions,
+  );
+  const difficulties = buildFilterOptions(
+    [...difficultyOrder],
+    (difficulty) => ({ ...filters, difficulty: difficulty as Difficulty | "All" }),
+    questions,
+  );
 
   function setPaper(paper: PetPaper | "All") {
     onFiltersChange({ paper, part: "All", topic: "All", difficulty: "All" });
@@ -192,20 +213,37 @@ function NavigatorPanel({
     <Card className="h-fit">
       <CardHeader>
         <CardTitle>Practice Navigator</CardTitle>
-        <CardDescription>Choose what to practise now.</CardDescription>
+        <CardDescription>
+          Paper is the main choice. Part, Topic, and Difficulty narrow the list together.
+        </CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
+        <div className="rounded-lg border bg-muted/40 p-3 text-sm leading-6 text-muted-foreground">
+          <p className="font-medium text-foreground">Current filter</p>
+          <p>
+            {formatFilterValue(filters.paper)} → Part {formatFilterValue(filters.part)} + Topic{" "}
+            {formatFilterValue(filters.topic)} + Difficulty {formatFilterValue(filters.difficulty)}
+          </p>
+          <p>
+            Showing <span className="font-medium text-foreground">{currentCount}</span> question
+            {currentCount === 1 ? "" : "s"}.
+          </p>
+        </div>
+
         <div className="flex flex-col gap-2">
           <p className="text-sm font-medium">Paper</p>
-          {(["All", ...paperOrder] as const).map((paper) => (
+          {paperOptions.map((paper) => (
             <Button
-              key={paper}
-              variant={filters.paper === paper ? "default" : "outline"}
-              className="justify-start"
-              onClick={() => setPaper(paper)}
+              key={paper.value}
+              variant={filters.paper === paper.value ? "default" : "outline"}
+              className="justify-between"
+              onClick={() => setPaper(paper.value)}
             >
-              {paper === "All" ? <ClipboardList data-icon="inline-start" /> : null}
-              {paper === "All" ? "All papers" : paper}
+              <span className="inline-flex items-center gap-2">
+                {paper.value === "All" ? <ClipboardList data-icon="inline-start" /> : null}
+                {paper.label}
+              </span>
+              <span className="text-xs opacity-75">{paper.count}</span>
             </Button>
           ))}
         </div>
@@ -214,18 +252,21 @@ function NavigatorPanel({
           label="Part"
           value={filters.part}
           options={parts}
+          help="PET exam part inside the selected paper."
           onChange={(part) => onFiltersChange({ ...filters, part })}
         />
         <SelectFilter
           label="Topic"
           value={filters.topic}
           options={topics}
+          help="Practice topic. It narrows the current paper/part."
           onChange={(topic) => onFiltersChange({ ...filters, topic })}
         />
         <SelectFilter
           label="Difficulty"
           value={filters.difficulty}
-          options={[...difficultyOrder]}
+          options={difficulties}
+          help="Training level. It also narrows the same question list."
           onChange={(difficulty) =>
             onFiltersChange({ ...filters, difficulty: difficulty as Difficulty | "All" })
           }
@@ -247,28 +288,51 @@ function SelectFilter({
   label,
   value,
   options,
+  help,
   onChange,
 }: {
   label: string;
   value: string;
-  options: string[];
+  options: FilterOption[];
+  help: string;
   onChange: (value: string) => void;
 }) {
   return (
     <label className="flex flex-col gap-2 text-sm font-medium">
       {label}
+      <span className="text-xs font-normal leading-5 text-muted-foreground">{help}</span>
       <select
         value={value}
         onChange={(event) => onChange(event.target.value)}
         className="h-10 rounded-md border border-input bg-background px-3 text-sm font-normal outline-none focus-visible:ring-2 focus-visible:ring-ring"
       >
-        <option value="All">All</option>
+        <option value="All">All ({options.reduce((sum, option) => sum + option.count, 0)})</option>
         {options.map((option) => (
-          <option key={option} value={option}>
-            {option}
+          <option key={option.value} value={option.value} disabled={option.count === 0}>
+            {option.value} ({option.count})
           </option>
         ))}
       </select>
     </label>
   );
+}
+
+type FilterOption = {
+  value: string;
+  count: number;
+};
+
+function buildFilterOptions(
+  values: readonly string[],
+  nextFilters: (value: string) => PracticeFilters,
+  questions: PracticeQuestion[],
+): FilterOption[] {
+  return values.map((value) => ({
+    value,
+    count: filterQuestions(questions, nextFilters(value)).length,
+  }));
+}
+
+function formatFilterValue(value: string) {
+  return value === "All" ? "All" : value;
 }
