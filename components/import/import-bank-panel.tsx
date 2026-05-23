@@ -14,7 +14,10 @@ export function ImportBankPanel({
   onImportQuestions,
   onExportLearningData,
   onImportLearningData,
-  onReset,
+  onResetProgressOnly,
+  onResetAllLocalData,
+  onLoadSampleData,
+  bankIsEmpty,
 }: {
   importText: string;
   exportText: string;
@@ -23,7 +26,10 @@ export function ImportBankPanel({
   onImportQuestions: () => void;
   onExportLearningData: () => void;
   onImportLearningData: () => void;
-  onReset: () => void;
+  onResetProgressOnly: () => void;
+  onResetAllLocalData: () => void;
+  onLoadSampleData: () => void;
+  bankIsEmpty: boolean;
 }) {
   return (
     <div className="grid gap-4 lg:grid-cols-2">
@@ -43,10 +49,19 @@ export function ImportBankPanel({
           />
           <p className="text-sm text-muted-foreground">{message}</p>
           <div className="flex flex-wrap gap-2">
-            <Button variant="outline" onClick={onReset}>
+            <Button variant="outline" onClick={onResetProgressOnly}>
               <RotateCcw data-icon="inline-start" />
-              Reset local data
+              Reset practice progress only
             </Button>
+            <Button variant="outline" onClick={onResetAllLocalData}>
+              <RotateCcw data-icon="inline-start" />
+              Reset all local data
+            </Button>
+            {bankIsEmpty ? (
+              <Button variant="outline" onClick={onLoadSampleData}>
+                Load sample data
+              </Button>
+            ) : null}
             <Button variant="outline" onClick={onImportLearningData}>
               <Import data-icon="inline-start" />
               Import progress

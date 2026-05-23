@@ -1,6 +1,6 @@
 "use client";
 
-import { AlertCircle } from "lucide-react";
+import { AlertCircle, ArrowRight } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -27,6 +27,8 @@ export function QuestionCard({
   listeningReasons,
   onAnswer,
   onSubmit,
+  onNext,
+  nextDisabled = false,
   onToggleListeningReason,
 }: {
   question: Partial<PracticeQuestion>;
@@ -36,21 +38,24 @@ export function QuestionCard({
   listeningReasons: ListeningReasonMap;
   onAnswer: (questionId: string, value: string) => void;
   onSubmit: () => void;
+  onNext?: () => void;
+  nextDisabled?: boolean;
   onToggleListeningReason: (questionId: string, reason: ListeningErrorReason) => void;
 }) {
   if (!isRenderableQuestion(question)) {
     return (
       <Card>
         <CardHeader>
-          <CardTitle>Question data is incomplete</CardTitle>
+          <CardTitle>This question needs more information</CardTitle>
           <CardDescription>
-            id={question?.id ?? "(missing)"} · type={question?.type ?? "(missing)"} · paper=
-            {question?.paper ?? "(missing)"} · part={question?.part ?? "(missing)"}
+            Please choose another question or ask an adult to check the imported practice bank.
           </CardDescription>
         </CardHeader>
       </Card>
     );
   }
+
+  const nextAction = getNextAction(question, answer, isSubmitted);
 
   return (
     <Card className="bg-white">
@@ -64,11 +69,18 @@ export function QuestionCard({
         <div>
           <CardTitle className="text-2xl leading-8">{question.title}</CardTitle>
           <CardDescription className="mt-2 text-base">
-            Read the task, choose or write your answer, then check it.
+            {question.paper === "Listening"
+              ? "Listen first, answer, then check."
+              : "Read, answer, check, then learn from the feedback."}
           </CardDescription>
         </div>
       </CardHeader>
       <CardContent className="flex flex-col gap-5">
+        <section className="rounded-lg border border-primary/30 bg-secondary/60 p-4">
+          <p className="text-sm font-semibold text-muted-foreground">What to do now / 现在做什么</p>
+          <p className="mt-2 text-lg font-semibold leading-7 text-foreground">{nextAction}</p>
+        </section>
+
         <section className="rounded-lg border bg-muted/40 p-4">
           <p className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
             Task instruction
@@ -131,8 +143,11 @@ export function QuestionCard({
           <section className="flex flex-col gap-3 rounded-lg border bg-card p-4">
             <div className="flex items-center gap-2 font-medium">
               <AlertCircle data-icon="inline-start" />
-              What made this listening question hard?
+              Choose one listening reason / 选一个听力错因
             </div>
+            <p className="text-sm text-muted-foreground">
+              This helps the parent feedback say what to practise next.
+            </p>
             <div className="flex flex-wrap gap-2">
               {listeningReasonOptions.map((reason) => {
                 const active = (listeningReasons[question.id] ?? []).includes(reason);
@@ -152,6 +167,16 @@ export function QuestionCard({
         ) : null}
 
         {isSubmitted && result ? <ExplanationPanel question={question} result={result} /> : null}
+
+        {isSubmitted && result && onNext ? (
+          <div className="flex flex-col gap-2 rounded-lg border bg-muted/40 p-4 sm:flex-row sm:items-center sm:justify-between">
+            <p className="text-sm text-muted-foreground">Read the feedback, then go next.</p>
+            <Button disabled={nextDisabled} onClick={onNext}>
+              Next question
+              <ArrowRight data-icon="inline-end" />
+            </Button>
+          </div>
+        ) : null}
       </CardContent>
     </Card>
   );
@@ -168,4 +193,15 @@ function isRenderableQuestion(question: Partial<PracticeQuestion> | undefined): 
       question.title &&
       question.prompt,
   );
+}
+
+function getNextAction(question: PracticeQuestion, answer: string, isSubmitted: boolean) {
+  if (isSubmitted) return "Read the feedback, then go next. 看反馈，然后做下一题。";
+  if (question.type === "writing") return "Write your answer, then check it. 写完后检查。";
+  if (question.type === "speaking") return "Say it first, then type key words. 先说，再打关键词。";
+  if (question.paper === "Listening" && !answer) {
+    return "Listen first. Do not read the transcript before answering. 先听，不要先看原文。";
+  }
+  if (!answer) return "Choose one answer. 先选一个答案。";
+  return "Now check your answer. 现在检查答案。";
 }

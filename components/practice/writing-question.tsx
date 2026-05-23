@@ -52,10 +52,10 @@ export function WritingQuestion({
 
       <div className="flex flex-col justify-between gap-3 rounded-lg border bg-muted/40 p-3 sm:flex-row sm:items-center">
         <p className="text-sm text-muted-foreground">
-          Word count: <span className="font-medium text-foreground">{wordCount}</span>
+          字数 Word count: <span className="font-medium text-foreground">{wordCount}</span>
         </p>
         <Button size="lg" disabled={!answer.trim()} onClick={onSubmit}>
-          Submit writing
+          {isSubmitted ? "Checked" : "Check my answer"}
         </Button>
       </div>
 
@@ -67,6 +67,15 @@ export function WritingQuestion({
               {result.checklistHits?.length ?? 0}/{question.checklist.length} task points
             </Badge>
           </div>
+          <div className="rounded-lg border bg-muted/30 p-3">
+            <p className="font-medium">字数</p>
+            <p className="mt-2 text-sm text-muted-foreground">
+              {result.wordCount ?? wordCount} words. Keep it clear before making it longer.
+            </p>
+          </div>
+          <div className="rounded-lg border bg-muted/30 p-3">
+            <p className="font-medium">信息点完成情况</p>
+            <div className="mt-3 grid gap-2">
           {question.checklist.map((item) => {
             const hit = hitIds.has(item.id);
             const Icon = hit ? CheckCircle2 : Circle;
@@ -80,12 +89,34 @@ export function WritingQuestion({
               </div>
             );
           })}
+            </div>
+          </div>
           {result.missingItems?.length ? (
-            <p className="text-sm text-muted-foreground">
-              Missing: {result.missingItems.map((item) => item.label).join(", ")}
-            </p>
+            <div className="rounded-lg border bg-muted/30 p-3">
+              <p className="font-medium">Missing</p>
+              <p className="mt-2 text-sm text-muted-foreground">
+                {result.missingItems.map((item) => item.label).join(", ")}
+              </p>
+            </div>
           ) : null}
-          {result.advice ? <p className="text-sm text-muted-foreground">Suggestion: {result.advice}</p> : null}
+          <div className="rounded-lg border bg-muted/30 p-3">
+            <p className="font-medium">一个最重要建议</p>
+            <p className="mt-2 text-sm text-muted-foreground">
+              {result.advice ?? "Keep one clear idea in each sentence."}
+            </p>
+          </div>
+          <div className="rounded-lg border bg-muted/30 p-3">
+            <p className="font-medium">可以这样写</p>
+            <div className="mt-2 flex flex-wrap gap-2">
+              {(question.support?.slice(0, 2) ?? ["I think...", "It is good because..."]).map(
+                (frame) => (
+                  <Badge key={frame} variant="secondary">
+                    {frame}
+                  </Badge>
+                ),
+              )}
+            </div>
+          </div>
         </div>
       ) : null}
     </section>

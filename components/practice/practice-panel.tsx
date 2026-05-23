@@ -91,6 +91,8 @@ export function PracticePanel({
                   onAnswer(questionId, value);
                 }}
                 onSubmit={submitCurrent}
+                onNext={() => setCurrentIndex(Math.min(boundedIndex + 1, lastIndex))}
+                nextDisabled={boundedIndex >= visibleQuestions.length - 1}
                 onToggleListeningReason={onToggleListeningReason}
               />
             </div>

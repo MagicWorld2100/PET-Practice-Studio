@@ -56,14 +56,17 @@ export function ListeningControls({
           onClick={() => setShowTranscript((current) => !current)}
         >
           {showTranscript ? <EyeOff data-icon="inline-start" /> : <Eye data-icon="inline-start" />}
-          {showTranscript ? "Hide transcript" : "Show transcript"}
+          {showTranscript ? "Hide transcript" : "Show transcript after answering"}
         </Button>
       </div>
+      <p className="text-sm font-medium text-foreground">
+        Listen first. Do not read the transcript before answering.
+      </p>
       {showTranscript && canReveal ? (
         <p className="text-sm leading-6 text-muted-foreground">Transcript: {text}</p>
       ) : (
         <p className="text-sm text-muted-foreground">
-          Transcript is hidden before answering. Use browser TTS playback first.
+          Transcript is hidden now. Use Play once or Play twice first.
         </p>
       )}
     </div>
