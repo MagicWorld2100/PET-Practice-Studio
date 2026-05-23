@@ -11,6 +11,7 @@ import { difficultyOrder, paperOrder } from "@/data/sample-bank";
 import { filterQuestions, getAvailableParts, getAvailableTopics, type PracticeFilters } from "@/lib/questions";
 import type {
   AnswerMap,
+  AttemptRecord,
   Difficulty,
   ListeningErrorReason,
   ListeningReasonMap,
@@ -26,6 +27,7 @@ export function PracticePanel({
   visibleQuestions,
   filters,
   answers,
+  attempts,
   results,
   listeningReasons,
   onFiltersChange,
@@ -37,6 +39,7 @@ export function PracticePanel({
   visibleQuestions: PracticeQuestion[];
   filters: PracticeFilters;
   answers: AnswerMap;
+  attempts: AttemptRecord[];
   results: QuestionResult[];
   listeningReasons: ListeningReasonMap;
   onFiltersChange: (filters: PracticeFilters) => void;
@@ -77,7 +80,18 @@ export function PracticePanel({
 
   return (
     <div className="grid gap-4 lg:grid-cols-[280px_1fr]">
-      <NavigatorPanel questions={allQuestions} filters={filters} onFiltersChange={updateFilters} />
+      <NavigatorPanel
+        questions={allQuestions}
+        visibleQuestions={visibleQuestions}
+        currentQuestionId={currentQuestion?.id}
+        attempts={attempts}
+        filters={filters}
+        onFiltersChange={updateFilters}
+        onSelectQuestion={(questionId) => {
+          const nextIndex = visibleQuestions.findIndex((question) => question.id === questionId);
+          if (nextIndex >= 0) setCurrentIndex(nextIndex);
+        }}
+      />
 
       <section className="flex flex-col gap-4">
         {currentQuestion ? (
@@ -188,14 +202,25 @@ function EmptyPracticeState({ onReset }: { onReset: () => void }) {
 
 function NavigatorPanel({
   questions,
+  visibleQuestions,
+  currentQuestionId,
+  attempts,
   filters,
   onFiltersChange,
+  onSelectQuestion,
 }: {
   questions: PracticeQuestion[];
+  visibleQuestions: PracticeQuestion[];
+  currentQuestionId?: string;
+  attempts: AttemptRecord[];
   filters: PracticeFilters;
   onFiltersChange: (filters: PracticeFilters) => void;
+  onSelectQuestion: (questionId: string) => void;
 }) {
   const currentCount = filterQuestions(questions, filters).length;
+  const attemptedIds = new Set(attempts.map((attempt) => attempt.questionId));
+  const attemptedVisibleCount = visibleQuestions.filter((question) => attemptedIds.has(question.id)).length;
+  const remainingVisibleCount = Math.max(visibleQuestions.length - attemptedVisibleCount, 0);
   const paperOptions = (["All", ...paperOrder] as const).map((paper) => ({
     value: paper,
     label: paper === "All" ? "All papers" : paper,
@@ -239,6 +264,10 @@ function NavigatorPanel({
           <p>
             Showing <span className="font-medium text-foreground">{currentCount}</span> question
             {currentCount === 1 ? "" : "s"}.
+          </p>
+          <p>
+            Done <span className="font-medium text-foreground">{attemptedVisibleCount}</span>, not yet{" "}
+            <span className="font-medium text-foreground">{remainingVisibleCount}</span>.
           </p>
         </div>
 
@@ -291,6 +320,34 @@ function NavigatorPanel({
           <RotateCcw data-icon="inline-start" />
           Reset filters
         </Button>
+
+        <div className="flex flex-col gap-2">
+          <p className="text-sm font-medium">Question status</p>
+          <div className="grid max-h-72 gap-2 overflow-y-auto pr-1">
+            {visibleQuestions.map((question, index) => {
+              const attempted = attemptedIds.has(question.id);
+              const active = question.id === currentQuestionId;
+              return (
+                <Button
+                  key={question.id}
+                  type="button"
+                  variant={active ? "default" : "outline"}
+                  className="h-auto justify-start whitespace-normal px-3 py-2 text-left"
+                  onClick={() => onSelectQuestion(question.id)}
+                >
+                  <span className="flex w-full items-start justify-between gap-2">
+                    <span className="text-sm">
+                      {index + 1}. {question.part}
+                    </span>
+                    <Badge variant={attempted ? "secondary" : "outline"}>
+                      {attempted ? "Done" : "Not yet"}
+                    </Badge>
+                  </span>
+                </Button>
+              );
+            })}
+          </div>
+        </div>
       </CardContent>
     </Card>
   );

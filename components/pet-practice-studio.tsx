@@ -385,6 +385,7 @@ export function PetPracticeStudio() {
               visibleQuestions={visibleQuestions}
               filters={filters}
               answers={progress.answers}
+              attempts={progress.attempts}
               results={visibleScoring.results}
               listeningReasons={progress.listeningReasons}
               onFiltersChange={setFilters}
