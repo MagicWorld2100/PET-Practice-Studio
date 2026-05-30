@@ -101,7 +101,7 @@ function findWeakestPaper(results: MockSession["results"]) {
     .map(([paper, value]) => ({ paper, average: value.total ? value.score / value.total : 0 }))
     .sort((a, b) => a.average - b.average)[0];
 
-  return weakest?.paper ?? "暂无";
+  return weakest?.paper ?? "No data";
 }
 
 function findTopTags(results: MockSession["results"]) {
@@ -123,8 +123,8 @@ function findTopTags(results: MockSession["results"]) {
     .map(([tag]) => tag);
 }
 
-function recommendTraining(weakestPaper: PetPaper | "暂无", topTags: string[]) {
-  if (weakestPaper !== "暂无") return `Tomorrow: do 2 ${weakestPaper} short questions, then review one mistake.`;
+function recommendTraining(weakestPaper: PetPaper | "No data", topTags: string[]) {
+  if (weakestPaper !== "No data") return `Tomorrow: do 2 ${weakestPaper} short questions, then review one mistake.`;
   if (topTags[0]) return `Tomorrow: practise one short question for ${topTags[0]}.`;
   return "Tomorrow: do 3 short Reading or Listening questions.";
 }

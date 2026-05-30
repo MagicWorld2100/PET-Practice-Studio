@@ -52,7 +52,7 @@ export function WritingQuestion({
 
       <div className="flex flex-col justify-between gap-3 rounded-lg border bg-muted/40 p-3 sm:flex-row sm:items-center">
         <p className="text-sm text-muted-foreground">
-          字数 Word count: <span className="font-medium text-foreground">{wordCount}</span>
+          Word count: <span className="font-medium text-foreground">{wordCount}</span>
         </p>
         <Button size="lg" disabled={!answer.trim()} onClick={onSubmit}>
           {isSubmitted ? "Checked" : "Check my answer"}
@@ -68,13 +68,13 @@ export function WritingQuestion({
             </Badge>
           </div>
           <div className="rounded-lg border bg-muted/30 p-3">
-            <p className="font-medium">字数</p>
+            <p className="font-medium">Word count</p>
             <p className="mt-2 text-sm text-muted-foreground">
               {result.wordCount ?? wordCount} words. Keep it clear before making it longer.
             </p>
           </div>
           <div className="rounded-lg border bg-muted/30 p-3">
-            <p className="font-medium">信息点完成情况</p>
+            <p className="font-medium">Task point coverage</p>
             <div className="mt-3 grid gap-2">
           {question.checklist.map((item) => {
             const hit = hitIds.has(item.id);
@@ -100,13 +100,13 @@ export function WritingQuestion({
             </div>
           ) : null}
           <div className="rounded-lg border bg-muted/30 p-3">
-            <p className="font-medium">一个最重要建议</p>
+            <p className="font-medium">Most important advice</p>
             <p className="mt-2 text-sm text-muted-foreground">
               {result.advice ?? "Keep one clear idea in each sentence."}
             </p>
           </div>
           <div className="rounded-lg border bg-muted/30 p-3">
-            <p className="font-medium">可以这样写</p>
+            <p className="font-medium">Useful frames</p>
             <div className="mt-2 flex flex-wrap gap-2">
               {(question.support?.slice(0, 2) ?? ["I think...", "It is good because..."]).map(
                 (frame) => (

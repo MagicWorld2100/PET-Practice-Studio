@@ -28,9 +28,9 @@ export function AnalyticsPanel({
     return (
       <Card>
         <CardHeader>
-          <CardTitle>Analytics / 学习追踪</CardTitle>
+          <CardTitle>Analytics</CardTitle>
           <CardDescription>
-            暂时还没有提交记录。完成几道题后，这里会显示学习趋势和错题本。
+            No submitted attempts yet. After a few questions, this page will show trends and review items.
           </CardDescription>
         </CardHeader>
         <CardContent className="text-sm text-muted-foreground">
@@ -44,7 +44,7 @@ export function AnalyticsPanel({
     <div className="flex flex-col gap-4">
       <Card>
         <CardHeader>
-          <CardTitle>Analytics / 学习追踪</CardTitle>
+          <CardTitle>Analytics</CardTitle>
           <CardDescription>Local-first learning history from this browser only.</CardDescription>
         </CardHeader>
         <CardContent className="grid gap-3 md:grid-cols-2 lg:grid-cols-4">

@@ -7,9 +7,11 @@ import type { PracticeQuestion, QuestionResult } from "@/types/question";
 export function ExplanationPanel({
   question,
   result,
+  compact = false,
 }: {
   question: PracticeQuestion;
   result: QuestionResult;
+  compact?: boolean;
 }) {
   if (!result.isAnswered) return null;
   const isReadingObjective =
@@ -24,10 +26,10 @@ export function ExplanationPanel({
           <Lightbulb data-icon="inline-start" />
           Reading feedback
         </div>
-        <div className="mt-4 grid gap-3 md:grid-cols-2">
-          <CoachSection title="1. 这题在考什么" body={details.tests ?? question.explanation ?? result.feedback} />
+        <div className={compact ? "mt-4 grid gap-3" : "mt-4 grid gap-3 md:grid-cols-2"}>
+          <CoachSection title="1. What this question tests" body={details.tests ?? question.explanation ?? result.feedback} />
           <div className="rounded-lg border bg-muted/30 p-3">
-            <p className="font-medium">2. 定位词</p>
+            <p className="font-medium">2. Locator words</p>
             <div className="mt-2 flex flex-wrap gap-2">
               {details.locatorWords?.length ? (
                 details.locatorWords.map((word) => (
@@ -36,16 +38,16 @@ export function ExplanationPanel({
                   </Badge>
                 ))
               ) : (
-                <span className="text-sm text-muted-foreground">先圈题干和原文里的关键词。</span>
+                <span className="text-sm text-muted-foreground">Mark the key words in the question and text first.</span>
               )}
             </div>
           </div>
-          <CoachSection title="3. 为什么这个答案对" body={details.whyCorrect ?? result.feedback} />
-          <CoachSection title="4. 为什么其他答案错" body={details.whyWrong ?? "其他选项和原文证据对不上。"} />
-          <div className="rounded-lg border bg-muted/30 p-3 md:col-span-2">
-            <p className="font-medium">5. 下一次怎么做</p>
+          <CoachSection title="3. Why this answer is correct" body={details.whyCorrect ?? result.feedback} />
+          <CoachSection title="4. Why the other answers are wrong" body={details.whyWrong ?? "The other options do not match the evidence in the text."} />
+          <div className={compact ? "rounded-lg border bg-muted/30 p-3" : "rounded-lg border bg-muted/30 p-3 md:col-span-2"}>
+            <p className="font-medium">5. What to do next time</p>
             <p className="mt-2 text-sm leading-6 text-muted-foreground">
-              {details.nextStep ?? "先找定位词，再用原文证据排除不符合的选项。"}
+              {details.nextStep ?? "Find locator words first, then use the text evidence to remove wrong options."}
             </p>
             <Button className="mt-3" variant="outline" disabled>
               Try a similar question later
@@ -64,19 +66,19 @@ export function ExplanationPanel({
       </div>
       <p className="mt-2 text-sm leading-6 text-muted-foreground">{result.feedback}</p>
       {question.explanation ? (
-        <p className="mt-2 text-sm leading-6 text-muted-foreground">解析：{question.explanation}</p>
+        <p className="mt-2 text-sm leading-6 text-muted-foreground">Explanation: {question.explanation}</p>
       ) : null}
       {question.explanationDetails ? (
         <div className="mt-3 grid gap-2 text-sm text-muted-foreground">
           {question.explanationDetails.tests ? (
             <p>
-              <span className="font-medium text-foreground">考点：</span>
+              <span className="font-medium text-foreground">Skill tested: </span>
               {question.explanationDetails.tests}
             </p>
           ) : null}
           {question.explanationDetails.locatorWords?.length ? (
             <div className="flex flex-wrap items-center gap-2">
-              <span className="font-medium text-foreground">定位词：</span>
+              <span className="font-medium text-foreground">Locator words: </span>
               {question.explanationDetails.locatorWords.map((word) => (
                 <Badge key={word} variant="secondary">
                   {word}
@@ -86,13 +88,13 @@ export function ExplanationPanel({
           ) : null}
           {question.explanationDetails.whyCorrect ? (
             <p>
-              <span className="font-medium text-foreground">为什么对：</span>
+              <span className="font-medium text-foreground">Why correct: </span>
               {question.explanationDetails.whyCorrect}
             </p>
           ) : null}
           {question.explanationDetails.whyWrong ? (
             <p>
-              <span className="font-medium text-foreground">为什么错：</span>
+              <span className="font-medium text-foreground">Why wrong: </span>
               {question.explanationDetails.whyWrong}
             </p>
           ) : null}

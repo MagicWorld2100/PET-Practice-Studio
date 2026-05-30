@@ -11,7 +11,11 @@ export type QuestionType =
 
 export type Difficulty = "foundation" | "standard" | "stretch";
 
-export type ListeningErrorReason = "没听到" | "反应慢" | "词不会" | "选项混淆";
+export type ListeningErrorReason =
+  | "missed-key-information"
+  | "slow-reaction"
+  | "unknown-words"
+  | "option-confusion";
 export type LearningDataVersion = "0.1.3";
 
 export type QuestionOption = {
@@ -112,7 +116,7 @@ export type MockSession = {
     objectiveCorrect: number;
     objectiveTotal: number;
     average: number;
-    weakestPaper?: PetPaper | "暂无";
+    weakestPaper?: PetPaper | "No data";
     topTags?: string[];
     recommendedNextTraining?: string;
   };
