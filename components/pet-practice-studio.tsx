@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 
 import { AnalyticsPanel } from "@/components/analytics/analytics-panel";
 import { DiagnosisPanel } from "@/components/diagnosis/diagnosis-panel";
+import { ReviewHistoryPanel } from "@/components/history/review-history-panel";
 import { ImportBankPanel } from "@/components/import/import-bank-panel";
 import { HeroPanel } from "@/components/layout/hero-panel";
 import { CoverageMockPanel } from "@/components/mock/coverage-mock-panel";
@@ -54,6 +55,7 @@ export function PetPracticeStudio() {
   const [exportText, setExportText] = useState("");
   const [importMessage, setImportMessage] = useState("");
   const [activeTab, setActiveTab] = useState("practice");
+  const [targetQuestionId, setTargetQuestionId] = useState<string | undefined>();
 
   useEffect(() => {
     queueMicrotask(() => {
@@ -194,24 +196,36 @@ export function PetPracticeStudio() {
 
   function handleTabChange(value: string) {
     setActiveTab(value);
-    if (value === "parent") {
-      setProgress((current) => {
-        const feedback = buildTrendAwareParentFeedback(current.attempts, current.sessions);
-        const active = current.activeSessionId;
-        const sessions = active
-          ? current.sessions.map((session) =>
-              session.sessionId === active && !session.completedAt ? completeSession(session) : session,
-            )
-          : current.sessions;
+  }
 
-        return {
-          ...current,
-          sessions,
-          activeSessionId: undefined,
-          parentReports: [...current.parentReports, createParentReport(feedback, active)],
-        };
-      });
-    }
+  function practiceQuestionAgain(question: PracticeQuestion) {
+    setFilters({
+      paper: question.paper,
+      part: question.part,
+      topic: question.topic,
+      difficulty: question.difficulty,
+    });
+    setTargetQuestionId(question.id);
+    setActiveTab("practice");
+  }
+
+  function generateParentReport() {
+    setProgress((current) => {
+      const feedback = buildTrendAwareParentFeedback(current.attempts, current.sessions);
+      const active = current.activeSessionId;
+      const sessions = active
+        ? current.sessions.map((session) =>
+            session.sessionId === active && !session.completedAt ? completeSession(session) : session,
+          )
+        : current.sessions;
+
+      return {
+        ...current,
+        sessions,
+        activeSessionId: undefined,
+        parentReports: [...current.parentReports, createParentReport(feedback, active)],
+      };
+    });
   }
 
   function importQuestions() {
@@ -221,7 +235,7 @@ export function PetPracticeStudio() {
       const valid = incoming.filter(isPracticeQuestion);
 
       if (valid.length === 0) {
-        setImportMessage("没有找到可导入的题目。请检查 JSON 字段。");
+        setImportMessage("No valid questions found. Check the JSON fields.");
         return;
       }
 
@@ -229,9 +243,9 @@ export function PetPracticeStudio() {
         ...current,
         importedQuestions: mergeQuestionBanks(current.importedQuestions, valid),
       }));
-      setImportMessage(`已导入 ${valid.length} 题。重复 id 会被新版本替换。`);
+      setImportMessage(`Imported ${valid.length} questions. Duplicate ids were replaced.`);
     } catch {
-      setImportMessage("JSON 解析失败，请检查格式。");
+      setImportMessage("JSON parsing failed. Check the format.");
     }
   }
 
@@ -249,7 +263,7 @@ export function PetPracticeStudio() {
     };
 
     setExportText(JSON.stringify(exportObject, null, 2));
-    setImportMessage("已生成本地学习数据导出 JSON。");
+    setImportMessage("Local learning export JSON is ready.");
   }
 
   function importLearningData() {
@@ -257,7 +271,7 @@ export function PetPracticeStudio() {
       const parsed = JSON.parse(importText) as unknown;
       if (!isLearningExport(parsed)) {
         if (!isLegacyLearningExport(parsed)) {
-          setImportMessage("这不是有效的 learning export JSON。");
+          setImportMessage("This is not a valid learning export JSON.");
           return;
         }
         const legacy = parsed as {
@@ -275,7 +289,7 @@ export function PetPracticeStudio() {
           mockSessions: legacy.mockSessions,
           latestMockSessionId: legacy.mockSessions.at(-1)?.id,
         }));
-        setImportMessage("已恢复旧版本地学习数据。新历史记录会从下一次提交开始记录。");
+        setImportMessage("Legacy local learning data restored. New history starts from the next submission.");
         return;
       }
 
@@ -294,9 +308,9 @@ export function PetPracticeStudio() {
         settings: parsed.settings,
         latestMockSessionId: parsed.mockSessions.at(-1)?.id,
       }));
-      setImportMessage("已恢复本地学习数据。");
+      setImportMessage("Local learning data restored.");
     } catch {
-      setImportMessage("学习数据 JSON 解析失败，请检查格式。");
+      setImportMessage("Learning data JSON parsing failed. Check the format.");
     }
   }
 
@@ -383,10 +397,11 @@ export function PetPracticeStudio() {
           <TabsList className="w-full justify-start">
             <TabsTrigger value="practice">Practice</TabsTrigger>
             <TabsTrigger value="mock">Coverage Mock</TabsTrigger>
-            <TabsTrigger value="analytics">Analytics / 学习追踪</TabsTrigger>
+            <TabsTrigger value="analytics">Analytics</TabsTrigger>
+            <TabsTrigger value="history">Review History</TabsTrigger>
             <TabsTrigger value="diagnosis">Diagnosis</TabsTrigger>
             <TabsTrigger value="parent">Parent Feedback</TabsTrigger>
-            <TabsTrigger value="import">Import / Export</TabsTrigger>
+            <TabsTrigger value="import">Question Bank</TabsTrigger>
           </TabsList>
 
           <TabsContent value="practice">
@@ -403,6 +418,8 @@ export function PetPracticeStudio() {
                 submitAttempt(question, "practice", timeSpentSec, answer)
               }
               onToggleListeningReason={toggleListeningReason}
+              targetQuestionId={targetQuestionId}
+              onTargetQuestionApplied={() => setTargetQuestionId(undefined)}
             />
           </TabsContent>
 
@@ -437,8 +454,20 @@ export function PetPracticeStudio() {
             <DiagnosisPanel diagnosis={diagnosis} />
           </TabsContent>
 
+          <TabsContent value="history">
+            <ReviewHistoryPanel
+              attempts={progress.attempts}
+              questions={allQuestions}
+              onPracticeQuestion={practiceQuestionAgain}
+            />
+          </TabsContent>
+
           <TabsContent value="parent">
-            <ParentFeedbackPanel feedback={parentFeedback} onEndSession={endActiveSession} />
+            <ParentFeedbackPanel
+              feedback={parentFeedback}
+              onEndSession={endActiveSession}
+              onGenerateReport={generateParentReport}
+            />
           </TabsContent>
 
           <TabsContent value="import">
@@ -454,6 +483,8 @@ export function PetPracticeStudio() {
               onResetAllLocalData={resetAllLocalData}
               onLoadSampleData={loadSampleData}
               bankIsEmpty={allQuestions.length === 0}
+              totalQuestions={allQuestions.length}
+              importedQuestions={progress.importedQuestions.length}
             />
           </TabsContent>
         </Tabs>

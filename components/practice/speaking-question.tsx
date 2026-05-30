@@ -45,7 +45,7 @@ export function SpeakingQuestion({
           Speaking practice
         </p>
         <p className="mt-1 text-sm font-medium text-foreground">
-          Say it first, then type the key words. 先说出来，再打关键词。
+          Say it first, then type the key words.
         </p>
         <p className="mt-2 text-base leading-7 text-foreground">{question.question}</p>
       </div>

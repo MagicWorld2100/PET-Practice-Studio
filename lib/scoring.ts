@@ -41,7 +41,7 @@ function scoreChecklist(value: string, checklist: WritingChecklistItem[] = []) {
     advice:
       missingItems[0]?.advice ??
       checklist.find((item) => !hits.includes(item))?.advice ??
-      "下一步可以加入更具体的例子，让回答更像真实交流。",
+      "Next time, add a more specific example so the answer sounds more natural.",
   };
 }
 
@@ -85,8 +85,8 @@ export function scoreQuestion(question: PracticeQuestion, answers: AnswerMap): Q
       advice,
       feedback:
         words < minWords
-          ? `目前约 ${words} 词，先补足到 ${minWords} 词以上。`
-          : `目前约 ${words} 词，已完成 ${checklistHits.length}/${question.checklist?.length ?? 0} 个任务点。`,
+          ? `About ${words} words so far. Add more detail to reach at least ${minWords} words.`
+          : `About ${words} words so far. Completed ${checklistHits.length}/${question.checklist?.length ?? 0} task points.`,
     };
   }
 
@@ -96,8 +96,8 @@ export function scoreQuestion(question: PracticeQuestion, answers: AnswerMap): Q
     const score = Math.round(Math.min(words / idealWords, 1) * 100);
     const advice =
       words < minWords
-        ? `至少补到 ${minWords} 词左右，先保证连续表达。`
-        : "加入原因、例子或简单推测，表达会更完整。";
+        ? `Aim for at least ${minWords} words and keep the answer continuous.`
+        : "Add a reason, example, or simple guess to make the answer more complete.";
 
     return {
       ...baseResult(question, value, isAnswered),
@@ -108,8 +108,8 @@ export function scoreQuestion(question: PracticeQuestion, answers: AnswerMap): Q
       advice,
       feedback:
         words < minWords
-          ? `回答偏短，目前约 ${words} 词。`
-          : `回答长度达到基础要求，目前约 ${words} 词。`,
+          ? `The answer is short: about ${words} words.`
+          : `The answer meets the basic length target: about ${words} words.`,
     };
   }
 
@@ -122,7 +122,7 @@ export function scoreQuestion(question: PracticeQuestion, answers: AnswerMap): Q
     score: isCorrect ? 1 : 0,
     maxScore: 1,
     tags: isCorrect ? [] : question.diagnosisTags ?? [],
-    feedback: !isAnswered ? "还没有作答。" : isCorrect ? "回答正确。" : "答案不匹配，请看解析。",
+    feedback: !isAnswered ? "No answer yet." : isCorrect ? "Correct." : "The answer does not match. Check the explanation.",
   };
 }
 

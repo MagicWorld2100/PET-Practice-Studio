@@ -103,7 +103,7 @@ export function CoverageMockPanel({
               title="Correct objective questions"
               body={`${session.summary.objectiveCorrect}/${session.summary.objectiveTotal}`}
             />
-            <SummaryBlock title="Weakest paper" body={session.summary.weakestPaper ?? "暂无"} />
+            <SummaryBlock title="Weakest paper" body={session.summary.weakestPaper ?? "No data"} />
             <SummaryBlock
               title="Recommended next training"
               body={session.summary.recommendedNextTraining ?? "Do 3 short Reading or Listening questions."}
@@ -181,6 +181,7 @@ export function CoverageMockPanel({
           onNext={() => onMove(Math.min(session.currentIndex + 1, questions.length - 1))}
           nextDisabled={session.currentIndex >= questions.length - 1}
           onToggleListeningReason={onToggleListeningReason}
+          presentation="exam"
         />
       ) : null}
     </div>

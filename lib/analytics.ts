@@ -11,7 +11,12 @@ import type {
 import type { ParentFeedback } from "@/lib/diagnostics";
 
 const papers: PetPaper[] = ["Reading", "Listening", "Writing", "Speaking"];
-const listeningReasons: ListeningErrorReason[] = ["没听到", "反应慢", "词不会", "选项混淆"];
+const listeningReasons: ListeningErrorReason[] = [
+  "missed-key-information",
+  "slow-reaction",
+  "unknown-words",
+  "option-confusion",
+];
 
 export function createPracticeSession(mode: PracticeSession["mode"]): PracticeSession {
   const now = new Date().toISOString();
@@ -158,50 +163,50 @@ export function buildTrendAwareParentFeedback(
   const latestSpeaking = analytics.speakingLengthTrend.at(-1);
   const latestSession = sessions.at(-1);
   const keyProblems = [
-    ...(weakestPaper ? [`近 7 天较弱 paper：${weakestPaper.paper}，客观题正确率 ${weakestPaper.accuracy}%。`] : []),
-    ...(listeningReason ? [`听力主要错因：${listeningReason.reason}。`] : []),
-    ...topTags.map((item) => `${item.tag}: ${item.count} 次。`),
+    ...(weakestPaper ? [`Weakest paper in the last 7 days: ${weakestPaper.paper}, objective accuracy ${weakestPaper.accuracy}%.`] : []),
+    ...(listeningReason ? [`Main listening reason: ${listeningReason.reason}.`] : []),
+    ...topTags.map((item) => `${item.tag}: ${item.count} times.`),
   ].slice(0, 3);
 
   while (keyProblems.length < 3) {
     keyProblems.push(
       attempts.length < 3
-        ? "数据还不够，先完成 3-5 次短练习再看趋势。"
-        : "暂时没有新的明显问题，保持短练和复盘。",
+        ? "There is not enough data yet. Complete 3-5 short practices before reading trends."
+        : "No obvious new issue yet. Keep short practice and review steady.",
     );
   }
 
   return {
     completedContent:
       todayAttempts.length === 0
-        ? "今天还没有新的提交记录。"
-        : `今天提交 ${todayAttempts.length} 次；最近 7 天共 ${last7Days.length} 次。${
-            latestSession ? ` 最近一次 session 完成 ${latestSession.totalAttempts} 次提交。` : ""
+        ? "No new submissions today."
+        : `Submitted ${todayAttempts.length} times today; ${last7Days.length} times in the last 7 days.${
+            latestSession ? ` The latest session had ${latestSession.totalAttempts} submissions.` : ""
           }`,
     obviousProgress:
       attempts.length === 0
-        ? "暂时没有足够数据判断进步。"
+        ? "There is not enough data yet to judge progress."
         : analytics.writingTaskCompletion.total > 0
-          ? `Writing 信息点完成率 ${analytics.writingTaskCompletion.rate}%，可以先肯定任务完成度。`
+          ? `Writing task point completion is ${analytics.writingTaskCompletion.rate}%. Start by acknowledging task completion.`
           : latestSpeaking
-            ? `Speaking 最近一次输出约 ${latestSpeaking.wordCount} 词，已经开始形成可追踪输出。`
-            : "孩子已经开始留下可复盘的练习记录，这是今天最明显的进步。",
+            ? `The latest Speaking output was about ${latestSpeaking.wordCount} words, so output is becoming trackable.`
+            : "The learner has started creating reviewable practice records. That is the clearest progress today.",
     keyProblems,
     tomorrowTasks: [
       listeningReason
-        ? `做 1 题 Listening，重点复盘“${listeningReason.reason}”。`
+        ? `Do 1 Listening question and review "${listeningReason.reason}".`
         : weakestPaper
-          ? `做 2 题 ${weakestPaper.paper} 短练，并复盘一个错因。`
-          : "做 3 题 Reading 或 Listening，先积累趋势数据。",
-      "错题本里选 1 道题，让孩子说出定位词或错因。",
-      "补 1 个 Writing/Speaking 输出，只看是否完整，不做重批改。",
+          ? `Do 2 short ${weakestPaper.paper} questions and review one error reason.`
+          : "Do 3 Reading or Listening questions to build trend data first.",
+      "Choose 1 review item and ask the learner to explain the locator words or error reason.",
+      "Add 1 Writing or Speaking output. Check completeness only, without heavy correction.",
     ],
     intervention:
       attempts.length < 5
-        ? "暂不需要强介入。家长只需帮助孩子完成稳定记录。"
+        ? "No strong intervention is needed yet. A parent only needs to help the learner build a steady record."
         : topTags.length >= 3 || Boolean(listeningReason)
-          ? "建议轻度介入：陪孩子复盘最高频错因，每次控制在 5 分钟内。"
-          : "不需要明显介入，保持短时练习和错题复盘即可。",
+          ? "Light support is useful: review the most frequent error reason together, keeping each review within 5 minutes."
+          : "No obvious intervention is needed. Keep practice short and review mistakes regularly.",
   };
 }
 

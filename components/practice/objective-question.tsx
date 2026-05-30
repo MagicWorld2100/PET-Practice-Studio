@@ -12,6 +12,7 @@ export function ObjectiveQuestion({
   isSubmitted,
   onAnswer,
   onSubmit,
+  compact = false,
 }: {
   question: PracticeQuestion;
   answer: string;
@@ -19,13 +20,14 @@ export function ObjectiveQuestion({
   isSubmitted: boolean;
   onAnswer: (questionId: string, value: string) => void;
   onSubmit: () => void;
+  compact?: boolean;
 }) {
   const selectedLabel = question.options?.find((option) => option.id === answer)?.label;
 
   if (question.options?.length) {
     return (
       <section className="flex flex-col gap-4">
-        <div>
+        <div className={compact ? "sr-only" : undefined}>
           <p className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
             Choose one answer
           </p>
@@ -46,37 +48,41 @@ export function ObjectiveQuestion({
                 key={option.id}
                 type="button"
                 className={cn(
-                  "flex w-full items-start gap-4 rounded-xl border bg-card p-4 text-left shadow-sm transition-colors hover:border-primary hover:bg-accent",
+                  "flex w-full items-start gap-4 rounded-xl border bg-card text-left shadow-sm transition-colors hover:border-primary hover:bg-accent",
+                  compact ? "p-3" : "p-4",
                   selected && "border-primary bg-secondary ring-2 ring-primary shadow-md",
                 )}
                 onClick={() => onAnswer(question.id, option.id)}
               >
                 <span
                   className={cn(
-                    "flex size-10 shrink-0 items-center justify-center rounded-full border text-base font-bold",
+                    "flex shrink-0 items-center justify-center rounded-full border text-base font-bold",
+                    compact ? "size-8" : "size-10",
                     selected ? "border-primary bg-primary text-primary-foreground" : "bg-background",
                   )}
                 >
                   {option.id}
                 </span>
-                <span className="pt-2 text-base leading-6 text-foreground">{option.label}</span>
+                <span className={cn("text-base leading-6 text-foreground", compact ? "pt-1" : "pt-2")}>
+                  {option.label}
+                </span>
               </button>
             );
           })}
         </div>
 
-        <div className="rounded-lg border bg-muted/40 p-3 text-sm text-muted-foreground">
+        <div className={cn("rounded-lg border bg-muted/40 p-3 text-sm text-muted-foreground", compact && "hidden")}>
           Your answer:{" "}
           <span className="font-medium text-foreground">
             {answer ? `${answer}${selectedLabel ? ` - ${selectedLabel}` : ""}` : "Choose one answer"}
           </span>
         </div>
 
-        <Button size="lg" disabled={!answer} onClick={onSubmit}>
+        <Button size="lg" disabled={!answer || isSubmitted} onClick={onSubmit}>
           {isSubmitted ? "Checked" : "Check my answer"}
         </Button>
 
-        {isSubmitted && result ? <ObjectiveResult question={question} result={result} /> : null}
+        {isSubmitted && result && !compact ? <ObjectiveResult question={question} result={result} /> : null}
       </section>
     );
   }
@@ -90,7 +96,7 @@ export function ObjectiveQuestion({
         className="min-h-14 text-base"
       />
       {!answer.trim() ? <p className="text-sm text-muted-foreground">Type your answer first.</p> : null}
-      <Button size="lg" disabled={!answer.trim()} onClick={onSubmit}>
+      <Button size="lg" disabled={!answer.trim() || isSubmitted} onClick={onSubmit}>
         {isSubmitted ? "Checked" : "Check my answer"}
       </Button>
       {isSubmitted && result ? <ObjectiveResult question={question} result={result} /> : null}

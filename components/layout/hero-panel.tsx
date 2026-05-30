@@ -7,6 +7,11 @@ import type { ScoreSummary } from "@/types/question";
 export function HeroPanel({ scoring }: { scoring: ScoreSummary }) {
   const progressValue =
     scoring.total === 0 ? 0 : Math.round((scoring.answered / scoring.total) * 100);
+  const attemptedObjective = scoring.results.filter(
+    (result) => result.isAnswered && result.type !== "writing" && result.type !== "speaking",
+  ).length;
+  const attemptedAccuracy =
+    attemptedObjective === 0 ? 0 : Math.round((scoring.objectiveCorrect / attemptedObjective) * 100);
 
   return (
     <div className="flex flex-col justify-between gap-4 lg:flex-row lg:items-center">
@@ -22,23 +27,31 @@ export function HeroPanel({ scoring }: { scoring: ScoreSummary }) {
             PET Practice Studio
           </h1>
           <p className="max-w-2xl text-sm leading-6 text-muted-foreground">
-            选择题目后直接作答，系统会即时检查并给出下一步建议。
+            Choose a question, answer it, then get instant feedback and a clear next step.
           </p>
         </div>
       </div>
-      <Card className="w-full lg:max-w-sm">
+      <Card className="w-full lg:max-w-xl">
         <CardHeader className="p-4 pb-2">
-          <CardTitle>今日进度</CardTitle>
+          <CardTitle>Today&apos;s progress</CardTitle>
           <CardDescription>
-            {scoring.answered}/{scoring.total} 已完成 · 客观题 {scoring.objectiveCorrect}/
-            {scoring.objectiveTotal} 正确
+            Completed {scoring.answered}/{scoring.total} - Objective accuracy{" "}
+            {attemptedObjective ? `${scoring.objectiveCorrect}/${attemptedObjective}` : "No data"}
           </CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-2 p-4 pt-0">
           <Progress value={progressValue} />
-          <div className="flex items-center justify-between text-sm text-muted-foreground">
-            <span>综合完成度</span>
-            <span className="font-medium text-foreground">{progressValue}%</span>
+          <div className="grid gap-2 text-sm text-muted-foreground sm:grid-cols-2">
+            <div className="flex items-center justify-between gap-3">
+              <span>Coverage</span>
+              <span className="font-medium text-foreground">{progressValue}%</span>
+            </div>
+            <div className="flex items-center justify-between gap-3">
+              <span>Attempted accuracy</span>
+              <span className="font-medium text-foreground">
+                {attemptedObjective ? `${attemptedAccuracy}%` : "No data"}
+              </span>
+            </div>
           </div>
         </CardContent>
       </Card>

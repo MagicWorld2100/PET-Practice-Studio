@@ -6,25 +6,25 @@ export function DiagnosisPanel({ diagnosis }: { diagnosis: DiagnosisSummary }) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>轻量诊断</CardTitle>
-        <CardDescription>给孩子看的短反馈：完成了什么、哪里容易错、下一题做什么。</CardDescription>
+        <CardTitle>Quick diagnosis</CardTitle>
+        <CardDescription>A short review of completed work, likely weak points, and the next step.</CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col gap-5">
         <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
-          <SummaryBlock title="今日表现" body={diagnosis.todayPerformance} />
-          <SummaryBlock title="完成了什么" body={diagnosis.completedWork} />
-          <SummaryBlock title="正确率" body={diagnosis.accuracy} />
-          <SummaryBlock title="最容易错的 part" body={diagnosis.weakestPart} />
-          <SummaryBlock title="最需要注意的技能点" body={diagnosis.keySkill} />
-          <SummaryBlock title="下一题建议" body={diagnosis.nextQuestionSuggestion} />
+          <SummaryBlock title="Today" body={diagnosis.todayPerformance} />
+          <SummaryBlock title="Completed work" body={diagnosis.completedWork} />
+          <SummaryBlock title="Accuracy" body={diagnosis.accuracy} />
+          <SummaryBlock title="Weakest part" body={diagnosis.weakestPart} />
+          <SummaryBlock title="Key skill" body={diagnosis.keySkill} />
+          <SummaryBlock title="Next step" body={diagnosis.nextQuestionSuggestion} />
         </div>
 
         <div className="grid gap-4 md:grid-cols-2">
-          <IssueList title="问题标签" items={diagnosis.issues} empty="暂时没有明显问题标签。" />
+          <IssueList title="Issue tags" items={diagnosis.issues} empty="No clear issue tags yet." />
           <IssueList
-            title="听力错因"
+            title="Listening reasons"
             items={diagnosis.listeningReasons}
-            empty="暂时没有记录听力错因。"
+            empty="No listening reasons recorded yet."
           />
         </div>
       </CardContent>
@@ -61,7 +61,7 @@ function IssueList({
             <div key={item.tag} className="text-sm leading-6 text-muted-foreground">
               <div className="flex items-center justify-between gap-3">
                 <Badge variant="secondary">{item.tag}</Badge>
-                <span>{item.count} 次</span>
+                <span>{item.count} times</span>
               </div>
               <p className="mt-2">{item.advice}</p>
             </div>

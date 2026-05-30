@@ -33,6 +33,8 @@ export function PracticePanel({
   onAnswer,
   onSubmitAttempt,
   onToggleListeningReason,
+  targetQuestionId,
+  onTargetQuestionApplied,
 }: {
   allQuestions: PracticeQuestion[];
   visibleQuestions: PracticeQuestion[];
@@ -44,6 +46,8 @@ export function PracticePanel({
   onAnswer: (questionId: string, value: string) => void;
   onSubmitAttempt: (question: PracticeQuestion, timeSpentSec: number, answer: string) => void;
   onToggleListeningReason: (questionId: string, reason: ListeningErrorReason) => void;
+  targetQuestionId?: string;
+  onTargetQuestionApplied?: () => void;
 }) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [submitted, setSubmitted] = useState<SubmittedMap>({});
@@ -70,6 +74,17 @@ export function PracticePanel({
     });
   }, [currentQuestion?.id]);
 
+  useEffect(() => {
+    if (!targetQuestionId) return;
+    const targetIndex = visibleQuestions.findIndex((question) => question.id === targetQuestionId);
+    if (targetIndex >= 0) {
+      queueMicrotask(() => {
+        setCurrentIndex(targetIndex);
+        onTargetQuestionApplied?.();
+      });
+    }
+  }, [onTargetQuestionApplied, targetQuestionId, visibleQuestions]);
+
   function submitCurrent() {
     if (!currentQuestion) return;
     setSubmitted((current) => ({ ...current, [currentQuestion.id]: true }));
@@ -82,27 +97,39 @@ export function PracticePanel({
   }
 
   return (
-    <div className="grid gap-4 lg:grid-cols-[280px_1fr]">
-      <NavigatorPanel
-        questions={allQuestions}
-        visibleQuestions={visibleQuestions}
-        currentQuestionId={currentQuestion?.id}
-        attempts={attempts}
-        filters={filters}
-        onFiltersChange={updateFilters}
-        onSelectQuestion={(questionId) => {
-          const nextIndex = visibleQuestions.findIndex((question) => question.id === questionId);
-          if (nextIndex >= 0) setCurrentIndex(nextIndex);
-        }}
-      />
+    <div className="grid gap-4 md:grid-cols-[220px_minmax(0,1fr)]">
+      <div className="order-2 md:order-1">
+        <NavigatorPanel
+          questions={allQuestions}
+          visibleQuestions={visibleQuestions}
+          currentQuestionId={currentQuestion?.id}
+          attempts={attempts}
+          filters={filters}
+          onFiltersChange={updateFilters}
+          onSelectQuestion={(questionId) => {
+            const nextIndex = visibleQuestions.findIndex((question) => question.id === questionId);
+            if (nextIndex >= 0) setCurrentIndex(nextIndex);
+          }}
+        />
+      </div>
 
-      <section className="flex flex-col gap-4">
+      <section className="order-1 flex flex-col gap-4 md:order-2">
         {currentQuestion ? (
           <>
             <WorkbenchTopBar
               question={currentQuestion}
               index={boundedIndex}
               total={visibleQuestions.length}
+              filters={filters}
+              visibleQuestions={visibleQuestions}
+              attempts={attempts}
+              onSelectQuestion={(questionId) => {
+                const nextIndex = visibleQuestions.findIndex((question) => question.id === questionId);
+                if (nextIndex >= 0) setCurrentIndex(nextIndex);
+              }}
+              onResetFilters={() =>
+                updateFilters({ paper: "All", part: "All", topic: "All", difficulty: "All" })
+              }
               onPrevious={() => setCurrentIndex(Math.max(boundedIndex - 1, 0))}
               onNext={() => setCurrentIndex(Math.min(boundedIndex + 1, lastIndex))}
               previousDisabled={boundedIndex === 0}
@@ -143,48 +170,167 @@ function WorkbenchTopBar({
   question,
   index,
   total,
+  filters,
+  visibleQuestions,
+  attempts,
   previousDisabled,
   nextDisabled,
   onPrevious,
   onNext,
+  onSelectQuestion,
+  onResetFilters,
 }: {
   question: PracticeQuestion;
   index: number;
   total: number;
+  filters: PracticeFilters;
+  visibleQuestions: PracticeQuestion[];
+  attempts: AttemptRecord[];
   previousDisabled: boolean;
   nextDisabled: boolean;
   onPrevious: () => void;
   onNext: () => void;
+  onSelectQuestion: (questionId: string) => void;
+  onResetFilters: () => void;
 }) {
+  const attemptedIds = new Set(attempts.map((attempt) => attempt.questionId));
+  const attemptedVisibleCount = visibleQuestions.filter((item) => attemptedIds.has(item.id)).length;
+  const [questionListOpen, setQuestionListOpen] = useState(false);
+  const [pendingQuestionId, setPendingQuestionId] = useState(question.id);
+
+  function confirmQuestionSelection() {
+    onSelectQuestion(pendingQuestionId);
+    setQuestionListOpen(false);
+  }
+
   return (
     <Card>
-      <CardContent className="flex flex-col justify-between gap-3 p-4 sm:flex-row sm:items-center">
-        <div className="flex flex-col gap-2">
-          <p className="text-lg font-semibold">
-            Question {index + 1} of {total}
-          </p>
-          <div className="flex flex-wrap gap-2">
-            <Badge variant="secondary">{question.paper}</Badge>
-            <Badge variant="outline">{question.part}</Badge>
-            <Badge variant="outline">{question.topic}</Badge>
-            <Badge variant="outline">{question.difficulty}</Badge>
+      <CardContent className="flex flex-col gap-3 p-4">
+        <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
+          <div>
+            <p className="text-lg font-semibold">Question {index + 1} of {total}</p>
+            <p className="mt-1 text-sm text-muted-foreground">
+              {formatQuestionMeta(question)}
+            </p>
+            <p className="mt-1 text-sm font-medium text-primary">
+              View: {formatFilterSummary(filters)}
+            </p>
           </div>
-        </div>
-        <div className="flex gap-2">
-          <Button variant="outline" disabled={previousDisabled} onClick={onPrevious}>
-            <ChevronLeft data-icon="inline-start" />
-            Previous
-          </Button>
-          <Button variant="outline" disabled={nextDisabled} onClick={onNext}>
-            Next
-            <ChevronRight data-icon="inline-end" />
-          </Button>
+          <div className="grid grid-cols-[1fr_auto_1fr] gap-2 sm:flex">
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={previousDisabled}
+              onClick={() => {
+                setQuestionListOpen(false);
+                onPrevious();
+              }}
+            >
+              <ChevronLeft data-icon="inline-start" />
+              Previous
+            </Button>
+            <div className="relative md:hidden">
+              <Button
+                type="button"
+                size="sm"
+                className="shadow-md shadow-primary/20"
+                onClick={() => {
+                  setPendingQuestionId(question.id);
+                  setQuestionListOpen((current) => !current);
+                }}
+              >
+                Questions - {attemptedVisibleCount}/{visibleQuestions.length}
+              </Button>
+              {questionListOpen ? (
+                <div className="fixed inset-x-4 bottom-4 top-20 z-20 flex flex-col overflow-hidden rounded-lg border bg-card shadow-xl sm:absolute sm:inset-auto sm:left-1/2 sm:mt-2 sm:max-h-[70vh] sm:w-[min(92vw,380px)] sm:-translate-x-1/2">
+                  <div className="border-b p-3">
+                    <div>
+                      <p className="text-sm font-medium">Question list</p>
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        {formatFilterSummary(filters)}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="grid gap-2 overflow-y-auto p-3">
+                    {visibleQuestions.map((item, itemIndex) => {
+                      const attempted = attemptedIds.has(item.id);
+                      const active = item.id === pendingQuestionId;
+                      const current = item.id === question.id;
+                      return (
+                        <Button
+                          key={item.id}
+                          type="button"
+                          variant={active ? "default" : "outline"}
+                          className="h-auto justify-start whitespace-normal px-3 py-2 text-left"
+                          onClick={() => setPendingQuestionId(item.id)}
+                        >
+                          <span className="flex w-full items-start justify-between gap-2">
+                            <span className="min-w-0 text-sm">
+                              <span className="block truncate">
+                                {itemIndex + 1}. {item.part}
+                              </span>
+                              <span className="block truncate text-xs opacity-75">
+                                {shortQuestionTitle(item.title)}
+                              </span>
+                            </span>
+                            <Badge variant={current ? "secondary" : attempted ? "secondary" : "outline"}>
+                              {current ? "Current" : attempted ? "Done" : "New"}
+                            </Badge>
+                          </span>
+                        </Button>
+                      );
+                    })}
+                  </div>
+                  <div className="flex items-center justify-between gap-2 border-t bg-background p-3">
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      onClick={() => {
+                        onResetFilters();
+                        setPendingQuestionId(question.id);
+                      }}
+                    >
+                      Reset
+                    </Button>
+                    <div className="flex gap-2">
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        onClick={() => {
+                          setPendingQuestionId(question.id);
+                          setQuestionListOpen(false);
+                        }}
+                      >
+                        Cancel
+                      </Button>
+                      <Button type="button" size="sm" onClick={confirmQuestionSelection}>
+                        Confirm
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              ) : null}
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={nextDisabled}
+              onClick={() => {
+                setQuestionListOpen(false);
+                onNext();
+              }}
+            >
+              Next
+              <ChevronRight data-icon="inline-end" />
+            </Button>
+          </div>
         </div>
       </CardContent>
     </Card>
   );
 }
-
 function EmptyPracticeState({ onReset }: { onReset: () => void }) {
   return (
     <Card>
@@ -251,20 +397,17 @@ function NavigatorPanel({
   }
 
   return (
-    <Card className="h-fit">
+    <Card className="hidden h-fit md:block">
       <CardHeader>
-        <CardTitle>Practice Navigator</CardTitle>
-        <CardDescription>
-          Paper is the main choice. Part, Topic, and Difficulty narrow the list together.
+        <CardTitle>Choose practice</CardTitle>
+        <CardDescription className="md:hidden">
+          Filters are below the question on mobile so practice starts first.
         </CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
         <div className="rounded-lg border bg-muted/40 p-3 text-sm leading-6 text-muted-foreground">
           <p className="font-medium text-foreground">Current filter</p>
-          <p>
-            {formatFilterValue(filters.paper)} → Part {formatFilterValue(filters.part)} + Topic{" "}
-            {formatFilterValue(filters.topic)} + Difficulty {formatFilterValue(filters.difficulty)}
-          </p>
+          <p>{formatFilterSummary(filters)}</p>
           <p>
             Showing <span className="font-medium text-foreground">{currentCount}</span> question
             {currentCount === 1 ? "" : "s"}.
@@ -340,8 +483,13 @@ function NavigatorPanel({
                   onClick={() => onSelectQuestion(question.id)}
                 >
                   <span className="flex w-full items-start justify-between gap-2">
-                    <span className="text-sm">
-                      {index + 1}. {question.part}
+                    <span className="min-w-0 text-sm">
+                      <span className="block truncate">
+                        {index + 1}. {question.part}
+                      </span>
+                      <span className="block truncate text-xs opacity-75">
+                        {shortQuestionTitle(question.title)}
+                      </span>
                     </span>
                     <Badge variant={attempted ? "secondary" : "outline"}>
                       {attempted ? "Done" : "Not yet"}
@@ -406,6 +554,18 @@ function buildFilterOptions(
   }));
 }
 
-function formatFilterValue(value: string) {
-  return value === "All" ? "All" : value;
+function formatQuestionMeta(question: PracticeQuestion) {
+  return [question.paper, question.part, question.topic, question.difficulty].join(" - ");
+}
+
+function formatFilterSummary(filters: PracticeFilters) {
+  const activeFilters = [filters.paper, filters.part, filters.topic, filters.difficulty].filter(
+    (value) => value !== "All",
+  );
+
+  return activeFilters.length === 0 ? "All questions" : activeFilters.join(" - ");
+}
+
+function shortQuestionTitle(title: string) {
+  return title.replace(/^Reading Part \d+:\s*/i, "").replace(/^Listening Part \d+:\s*/i, "");
 }
